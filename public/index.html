@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AnpiesPicks — sportsbook apps live in your state</title>
+<meta name="description" content="Sign up with my link and we both get a bonus. AnpiesPicks only shows pick'em & sportsbook apps actually taking sign-ups in your state.">
+<meta property="og:title" content="AnpiesPicks 🎯 — best pick'em & sportsbook apps for your state">
+<meta property="og:description" content="Sign up with my link and we both get a bonus. We only show apps actually available where you are.">
+<meta property="og:site_name" content="AnpiesPicks">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://join.anpieo7.workers.dev/">
+<meta property="og:image" content="https://join.anpieo7.workers.dev/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://join.anpieo7.workers.dev/og.png">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Hanken+Grotesk:wght@400;500;600;700;800&family=Spline+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0E1411; --board:#121A16; --slip:#19231D; --slip-2:#202D26;
+    --line:#2A382F; --chalk:#ECF1ED; --mut:#8C988F;
+    --turf:#33B96A; --turf-deep:#1E7C46; --teal:#2DD1C4; --stamp:#E4572E; --paper:#EFE9DB;
+    --r:14px;
+    --display:"Anton",Impact,sans-serif;
+    --body:"Hanken Grotesk",system-ui,sans-serif;
+    --mono:"Spline Sans Mono",ui-monospace,monospace;
+  }
+  *{box-sizing:border-box;}
+  html{-webkit-text-size-adjust:100%;}
+  body{
+    margin:0; background:var(--ink); color:var(--chalk);
+    font-family:var(--body); font-size:17px; line-height:1.5;
+    -webkit-font-smoothing:antialiased; overflow-x:hidden;
+  }
+  /* ambient swirl field — patterned at the edges, dissolves through the centre column */
+  .ambient{position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden;}
+  .ambient .swirls{
+    position:absolute; inset:-8% -6%;
+    background:url('/swirl.svg') center/cover no-repeat;
+    opacity:.5; mix-blend-mode:screen;
+    animation:drift 80s ease-in-out infinite alternate;
+  }
+  /* soft coloured glows that pool light behind the boxes */
+  .ambient .glow{position:absolute; border-radius:50%; filter:blur(70px); opacity:.5;}
+  .g1{top:-6%; left:8%; width:46vw; height:46vw; background:radial-gradient(circle,rgba(51,185,106,.5),transparent 68%);}
+  .g2{top:34%; right:-8%; width:50vw; height:50vw; background:radial-gradient(circle,rgba(45,209,196,.4),transparent 70%);}
+  .g3{top:64%; left:-10%; width:48vw; height:48vw; background:radial-gradient(circle,rgba(124,110,246,.38),transparent 70%);}
+  .g4{top:90%; right:6%; width:44vw; height:44vw; background:radial-gradient(circle,rgba(228,87,46,.3),transparent 70%);}
+  @keyframes drift{from{transform:translate3d(0,0,0) scale(1.02);}to{transform:translate3d(0,-2.5%,0) scale(1.08) rotate(1.2deg);}}
+  /* faint floodlight wash from the top — stadium at night */
+  body::before{
+    content:""; position:fixed; inset:0 0 auto 0; height:60vh; z-index:0;
+    background:radial-gradient(120% 80% at 50% -20%, rgba(51,185,106,.10), transparent 60%);
+    pointer-events:none;
+  }
+  .shell{position:relative; z-index:1; max-width:780px; margin:0 auto; padding:0 1.1rem;}
+
+  /* ---- top bar ---- */
+  .bar{display:flex; align-items:center; justify-content:space-between; padding:1.1rem 0 .9rem;}
+  .brand{display:flex; align-items:center; gap:.55rem; font-family:var(--display); font-size:1.1rem; letter-spacing:.04em; text-transform:uppercase;}
+  .mark{width:18px; height:18px; border-radius:50%; border:2px solid var(--turf); position:relative; flex:0 0 auto;}
+  .mark::after{content:""; position:absolute; inset:4px; border-radius:50%; background:var(--stamp);}
+  .rec{font-family:var(--mono); font-size:.78rem; color:var(--mut); text-decoration:none; border-bottom:1px dashed var(--line); padding-bottom:2px;}
+  .rec:hover{color:var(--turf); border-color:var(--turf);}
+
+  /* ---- hero ---- */
+  .hero{padding:.6rem 0 1.6rem; border-top:1px solid var(--line);}
+  .eyebrow{font-family:var(--mono); font-size:.74rem; letter-spacing:.22em; text-transform:uppercase; color:var(--stamp); margin:1.2rem 0 .9rem;}
+  h1{
+    font-family:var(--display); font-weight:400; margin:0;
+    font-size:clamp(2.5rem,10.5vw,4.4rem); line-height:.96; letter-spacing:.005em; text-transform:uppercase;
+  }
+  /* state-as-control: the headline word you can change */
+  .pick{display:inline-grid; position:relative; vertical-align:baseline;}
+  .pick select{
+    font-family:var(--display); font-weight:400; text-transform:uppercase;
+    font-size:inherit; line-height:.96; color:var(--turf);
+    background:transparent; border:0; border-bottom:4px solid var(--turf);
+    margin:0; padding:0 .72em 0 0; cursor:pointer;
+    appearance:none; -webkit-appearance:none;
+    text-shadow:0 0 26px rgba(51,185,106,.35);
+  }
+  .pick::after{
+    content:"▾"; position:absolute; right:.05em; top:50%; transform:translateY(-46%);
+    font-family:var(--body); font-size:.42em; color:var(--turf); pointer-events:none;
+  }
+  .pick select:focus-visible{outline:3px solid var(--turf); outline-offset:4px; border-radius:3px;}
+  .lede{color:var(--mut); font-size:1.1rem; max-width:46ch; margin:1.1rem 0 0;}
+  .lede b{color:var(--chalk); font-weight:700;}
+
+  .cta-row{display:flex; align-items:center; gap:1rem; flex-wrap:wrap; margin-top:1.5rem;}
+  .go{
+    font-family:var(--body); font-weight:800; font-size:1.05rem; text-decoration:none;
+    background:var(--turf); color:#08130C; border:0; border-radius:11px;
+    padding:.85rem 1.4rem; display:inline-flex; align-items:center; gap:.5rem;
+    box-shadow:0 8px 26px -10px rgba(51,185,106,.7); transition:transform .12s ease, box-shadow .12s ease;
+  }
+  .go:hover{transform:translateY(-2px); box-shadow:0 14px 32px -10px rgba(51,185,106,.8);}
+  .go:active{transform:translateY(0);}
+  .tally{font-family:var(--mono); font-size:.82rem; color:var(--mut); letter-spacing:.02em;}
+  .tally b{color:var(--turf); font-weight:600;}
+
+  /* ---- the board (offers) ---- */
+  .board-label{display:flex; align-items:center; gap:.8rem; font-family:var(--mono); font-size:.74rem; letter-spacing:.18em; text-transform:uppercase; color:var(--mut); margin:1.8rem 0 1rem;}
+  .board-label::after{content:""; flex:1; height:1px; background:var(--line);}
+
+  .slip{
+    position:relative; background:var(--slip); border:1px solid var(--line);
+    border-radius:var(--r); padding:1.05rem 1.1rem 1.1rem 1.35rem; margin:.85rem 0; overflow:hidden;
+    box-shadow:0 1px 0 rgba(236,241,237,.04) inset, 0 22px 50px -34px rgba(0,0,0,.9), 0 0 34px -16px rgba(51,185,106,.28);
+    opacity:0; transform:translateY(10px); animation:deal .4s ease forwards; animation-delay:calc(var(--i,0)*45ms);
+  }
+  @keyframes deal{to{opacity:1; transform:none;}}
+  /* tear-spine: solid status edge + dashed perforation line */
+  .slip::before{content:""; position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--line);}
+  .slip::after{content:""; position:absolute; left:11px; top:10px; bottom:10px; width:0; border-left:1px dashed rgba(140,152,143,.4);}
+  .slip.live::before{background:var(--turf);}
+  /* coming-soon teaser cards — dimmed, no claim, teal stamp */
+  .slip.soon{opacity:.72; animation:none; transform:none; box-shadow:0 18px 40px -34px rgba(0,0,0,.9);}
+  .slip.soon::before{background:var(--teal);}
+
+  .slip-top{display:flex; justify-content:space-between; align-items:flex-start; gap:.9rem;}
+  .co{font-size:1.28rem; font-weight:800; letter-spacing:-.01em; line-height:1.15;}
+  .star{color:var(--stamp);}
+  .cat{font-family:var(--mono); font-size:.7rem; letter-spacing:.12em; text-transform:uppercase; color:var(--mut); margin:.35rem 0 0;}
+  .blurb{color:var(--mut); margin:.6rem 0 0; font-size:.96rem;}
+
+  /* stamps */
+  .stamp{font-family:var(--mono); font-weight:600; font-size:.68rem; letter-spacing:.1em; text-transform:uppercase; white-space:nowrap; flex:0 0 auto;}
+  .stamp.hot{color:var(--stamp); border:1.5px solid var(--stamp); border-radius:5px; padding:.22rem .45rem; transform:rotate(-3deg); box-shadow:inset 0 0 0 99px rgba(228,87,46,.06);}
+  .stamp.open{color:var(--turf);}
+  .stamp.dim{color:var(--mut);}
+  .stamp.shut{color:#c2766a;}
+  .stamp.soon-stamp{color:var(--teal); border:1.5px solid var(--teal); border-radius:5px; padding:.22rem .45rem;}
+
+  /* payout split */
+  .odds{display:flex; align-items:stretch; gap:.7rem; margin:.95rem 0 .2rem; background:var(--board); border:1px solid var(--line); border-radius:10px; padding:.7rem .85rem;}
+  .odds .leg{flex:1; min-width:0;}
+  .odds .lbl{display:block; font-family:var(--mono); font-size:.64rem; letter-spacing:.14em; text-transform:uppercase; color:var(--mut);}
+  .odds .amt{display:block; font-family:var(--mono); font-weight:600; font-size:1.18rem; color:var(--chalk); margin-top:.18rem; font-variant-numeric:tabular-nums; word-break:break-word;}
+  .odds .leg.you .amt{color:var(--turf);}
+  .odds .plus{align-self:center; font-family:var(--mono); font-size:1.3rem; color:var(--stamp); flex:0 0 auto;}
+
+  /* flash-promo bubbles — float OUTSIDE the offer cards, alternating L / R, with a live timer */
+  .promo-rail{position:relative; display:flex; flex-direction:column; gap:1rem; margin:1.4rem 0 .4rem;}
+  .bubble{position:relative; align-self:flex-start; width:min(320px,86%); text-decoration:none;
+    background:#fff; color:#0E1411; border-radius:18px; padding:.9rem 1.05rem;
+    box-shadow:0 20px 44px -18px rgba(0,0,0,.75), 0 0 30px -8px rgba(228,87,46,.55); transition:transform .12s ease;}
+  .bubble:hover{transform:translateY(-2px);}
+  .bubble.right{align-self:flex-end;}
+  .bubble .ey{font-family:var(--mono); font-size:.64rem; letter-spacing:.16em; text-transform:uppercase; color:var(--stamp); font-weight:600;}
+  .bubble .ti{font-weight:800; font-size:1.04rem; line-height:1.2; margin:.18rem 0 .1rem;}
+  .bubble .ti b{color:#C0390F;}
+  .bubble .cd{display:flex; gap:.35rem; margin:.55rem 0 .2rem;}
+  .bubble .seg{background:#0E1411; color:#fff; border-radius:9px; padding:.32rem .4rem; min-width:44px; text-align:center;}
+  .bubble .seg b{display:block; font-family:var(--mono); font-weight:600; font-size:1.3rem; line-height:1; font-variant-numeric:tabular-nums;}
+  .bubble .seg i{font-family:var(--mono); font-style:normal; font-size:.52rem; letter-spacing:.1em; text-transform:uppercase; color:#8C988F;}
+  .bubble .ended{font-family:var(--mono); font-weight:700; color:var(--stamp);}
+  .bubble .sub{color:#5b6b60; font-size:.8rem; margin-top:.2rem;}
+  .bubble::after{content:""; position:absolute; bottom:-8px; width:18px; height:18px; background:#fff; transform:rotate(45deg); box-shadow:3px 3px 8px -4px rgba(0,0,0,.5);}
+  .bubble:not(.right)::after{left:30px;}
+  .bubble.right::after{right:30px;}
+  @media(min-width:1000px){
+    .bubble:not(.right){margin-left:-130px;}
+    .bubble.right{margin-right:-130px;}
+  }
+  .note{font-size:.86rem; color:var(--mut); margin:.6rem 0 0; display:flex; gap:.45rem;}
+  .note span{flex:0 0 auto;}
+  .claim{
+    display:block; text-align:center; margin-top:.95rem; text-decoration:none;
+    font-family:var(--body); font-weight:700; font-size:1rem;
+    background:var(--slip-2); color:var(--chalk); border:1px solid var(--line); border-radius:10px; padding:.75rem;
+    transition:background .12s ease, border-color .12s ease, color .12s ease;
+  }
+  .slip.live .claim{background:rgba(51,185,106,.1); border-color:var(--turf-deep); color:var(--turf);}
+  .claim:hover{background:var(--turf); color:#08130C; border-color:var(--turf);}
+
+  .empty{text-align:center; color:var(--mut); font-family:var(--mono); font-size:.9rem; padding:1.5rem 0; line-height:1.7;}
+
+  /* ---- notify ---- */
+  .notify{background:linear-gradient(180deg,var(--slip),var(--board)); border:1px solid var(--line); border-radius:var(--r); padding:1.4rem 1.2rem; margin:2rem 0 0; text-align:center; box-shadow:0 22px 50px -34px rgba(0,0,0,.9), 0 0 40px -18px rgba(45,209,196,.3);}
+  .notify h2{font-family:var(--display); font-weight:400; text-transform:uppercase; letter-spacing:.02em; font-size:1.5rem; margin:0;}
+  .notify p{color:var(--mut); margin:.45rem auto .95rem; max-width:40ch; font-size:.96rem;}
+  .form{display:flex; gap:.5rem; justify-content:center; flex-wrap:wrap;}
+  .form input{flex:1; min-width:200px; max-width:300px; background:var(--ink); color:var(--chalk); border:1px solid var(--line); border-radius:10px; padding:.7rem .9rem; font-family:var(--body); font-size:1rem;}
+  .form input:focus-visible{outline:2px solid var(--turf); outline-offset:1px;}
+  .form button{font-family:var(--body); font-weight:800; background:var(--turf); color:#08130C; border:0; border-radius:10px; padding:.7rem 1.2rem; cursor:pointer; font-size:1rem;}
+  .form button:hover{filter:brightness(1.06);}
+  .submsg{font-family:var(--mono); font-size:.8rem; color:var(--mut); margin-top:.6rem; min-height:1em;}
+
+  /* ---- fine print ---- */
+  .fine{font-family:var(--mono); color:var(--mut); font-size:.72rem; line-height:1.7; border-top:1px solid var(--line); margin:2.5rem 0 0; padding:1.1rem 0 3rem;}
+  .fine b{color:#b9c3bb;}
+  .fine a{color:var(--turf); text-decoration:none;}
+
+  a:focus-visible,.rec:focus-visible,.go:focus-visible,.claim:focus-visible{outline:3px solid var(--turf); outline-offset:3px; border-radius:6px;}
+
+  @media (max-width:480px){
+    body{font-size:16px;}
+    .lede{font-size:1.02rem;}
+    .odds{flex-wrap:nowrap;}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .slip{animation:none; opacity:1; transform:none;}
+    .go,.claim{transition:none;}
+    .ambient .swirls{animation:none;}
+  }
+</style>
+</head>
+<body>
+<div class="ambient" aria-hidden="true">
+  <div class="glow g1"></div><div class="glow g2"></div><div class="glow g3"></div><div class="glow g4"></div>
+  <div class="swirls"></div>
+</div>
+<div class="shell">
+
+  <div class="bar">
+    <span class="brand"><span class="mark"></span>AnpiesPicks</span>
+    <a class="rec" href="/record">Verified track record →</a>
+  </div>
+
+  <header class="hero">
+    <p class="eyebrow">Referral offers · refreshed often</p>
+    <h1>Sportsbooks&nbsp;live&nbsp;in
+      <span class="pick"><select id="state" aria-label="Choose your state"></select></span>
+      right&nbsp;now.</h1>
+    <p class="lede">I only list apps actually taking sign-ups where you are. Use my link and <b>we both get the bonus</b> — that's the whole deal.</p>
+    <div class="cta-row">
+      <a id="best" class="go" href="/smart?channel=web">Get my best offer <span aria-hidden="true">→</span></a>
+      <span id="tally" class="tally"></span>
+    </div>
+  </header>
+
+  <div id="promoRail" class="promo-rail" aria-live="polite"></div>
+
+  <p class="board-label">The board</p>
+  <div id="list"></div>
+  <p id="empty" class="empty" style="display:none">No apps are taking new sign-ups in your state yet.<br>Try another state, or get on the list below.</p>
+
+  <p class="board-label">Coming soon</p>
+  <div id="soon"></div>
+
+  <section class="notify">
+    <h2>Get the tip-off</h2>
+    <p>A heads-up when a real promo drops in your state. No spam, no daily noise.</p>
+    <div class="form">
+      <input id="subEmail" type="email" autocomplete="email" placeholder="you@email.com">
+      <button onclick="subscribe()">Notify me</button>
+    </div>
+    <div id="subMsg" class="submsg"></div>
+  </section>
+
+  <footer class="fine">
+    <b>Disclosure:</b> These are my personal referral links — I may earn a bonus if you sign up and complete the required action. It costs you nothing extra, and you get a bonus too.<br>
+    21+ (18+ where permitted). Eligibility and promotions vary by state and can change at any time — confirm current terms in-app. Please play responsibly.
+    If gambling stops being fun, call <b>1-800-GAMBLER</b> or visit <a href="https://www.ncpgambling.org/">ncpgambling.org</a>.
+  </footer>
+
+</div>
+
+<script>
+const STATES = "AL AK AZ AR CA CO CT DE FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY DC".split(" ");
+const sel = document.getElementById('state');
+STATES.forEach(s => { const o=document.createElement('option'); o.value=s; o.textContent=s; sel.appendChild(o); });
+const esc = s => String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+// days until an ISO date (YYYY-MM-DD); null if missing/invalid
+function daysLeft(iso){
+  if(!iso) return null;
+  const end=new Date(iso+'T00:00:00'); if(isNaN(end)) return null;
+  const now=new Date(); now.setHours(0,0,0,0);
+  return Math.round((end-now)/86400000);
+}
+function countdownText(o){
+  const d=daysLeft(o.promo_expires);
+  if(d==null || d<0) return '';                 // no date, or already expired
+  if(d===0) return ' · ends today';
+  if(d===1) return ' · ends tomorrow';
+  if(d<=14) return ` · ends in ${d}d`;          // only show when genuinely soon
+  return '';
+}
+// active deposit-match promos (logged in the Promos tab) → white bubbles OUTSIDE the
+// cards, alternating left/right, each with a live segmented countdown.
+function renderPromos(offers, state){
+  const promos = offers.filter(o => o.status==='legal' && o.accepting_signups && o.match && o.match.pct!=null
+    && !(o.match.expires_at && Date.parse(o.match.expires_at) <= Date.now()));  // hide already-expired flash promos
+  const rail = document.getElementById('promoRail');
+  rail.innerHTML = promos.map((o,i)=>{
+    const m=o.match;
+    const upto = m.max!=null ? ` up to $${esc(m.max)}` : '';
+    const claim = `/smart?book=${encodeURIComponent(o.id)}&channel=web&state=${esc(state)}`;
+    const timer = m.expires_at
+      ? `<div class="cd" data-end="${esc(m.expires_at)}"></div>`
+      : (m.duration ? `<div class="sub">⏱ Limited time · ${esc(m.duration)}</div>` : '');
+    return `<a class="bubble ${i%2?'right':''}" href="${claim}">
+      <div class="ey">🔥 Flash deposit match</div>
+      <div class="ti">${esc(o.name)} — <b>${esc(m.pct)}% match</b>${upto}</div>
+      ${timer}
+      <div class="sub">Tap to claim before it's gone →</div>
+    </a>`;
+  }).join('');
+  tickPromos();
+}
+function pad(n){ return String(n).padStart(2,'0'); }
+function seg(n,l){ return `<span class="seg"><b>${pad(n)}</b><i>${l}</i></span>`; }
+function tickPromos(){
+  document.querySelectorAll('#promoRail .cd[data-end]').forEach(el=>{
+    const ms = Date.parse(el.dataset.end) - Date.now();
+    if(ms<=0){ el.innerHTML='<span class="ended">⏱ Promo ended</span>'; return; }
+    const s=Math.floor(ms/1000), d=Math.floor(s/86400), h=Math.floor(s%86400/3600), m=Math.floor(s%3600/60), sec=s%60;
+    el.innerHTML=(d>0?seg(d,'days'):'')+seg(h,'hrs')+seg(m,'min')+seg(sec,'sec');
+  });
+}
+setInterval(tickPromos, 1000);
+function stamp(o){
+  if (o.status==='legal' && o.accepting_signups)
+    return o.promo_active
+      ? `<span class="stamp hot">★ Promo live${countdownText(o)}</span>`
+      : '<span class="stamp open">✓ Taking sign-ups</span>';
+  if (o.status==='legal') return '<span class="stamp dim">Legal · not signing up</span>';
+  if (o.status==='gray')  return '<span class="stamp dim">Gray area</span>';
+  if (o.status==='unknown' || o.status==null) return '<span class="stamp dim">Unverified</span>';
+  return '<span class="stamp shut">Not available</span>';
+}
+
+async function load(state){
+  const r = await fetch('/api/offers?state='+state);
+  const data = await r.json();
+  sel.value = data.state;
+  document.getElementById('best').href = '/smart?channel=web&state='+data.state;
+
+  const offers = data.offers || [];
+  const avail = offers.filter(o=>o.status==='legal' && o.accepting_signups);
+  document.getElementById('tally').innerHTML =
+    `${offers.length} apps in ${esc(data.state)} · <b>${avail.length} taking sign-ups</b>`;
+  document.getElementById('empty').style.display = avail.length ? 'none' : 'block';
+  renderPromos(offers, data.state);
+
+  document.getElementById('list').innerHTML = offers.map((o,i) => {
+    const live = o.status==='legal' && o.accepting_signups;
+    return `
+    <article class="slip${live?' live':''}" style="--i:${i}">
+      <div class="slip-top">
+        <div>
+          <div class="co">${o.favorite?'<span class="star">★</span> ':''}${esc(o.name)}</div>
+          ${o.category?`<div class="cat">${esc(o.category).replace(/_/g,' ')}</div>`:''}
+        </div>
+        ${stamp(o)}
+      </div>
+      ${o.blurb?`<p class="blurb">${esc(o.blurb)}</p>`:''}
+      <div class="odds">
+        <div class="leg you"><span class="lbl">You get</span><span class="amt">${esc(o.referee_bonus||'—')}</span></div>
+        <div class="plus">+</div>
+        <div class="leg"><span class="lbl">I get</span><span class="amt">${esc(o.referrer_bonus||'—')}</span></div>
+      </div>
+      ${o.required_action?`<div class="note"><span>📋</span> ${esc(o.required_action)}</div>`:''}
+      ${o.product_note?`<div class="note"><span>ℹ️</span> ${esc(o.product_note)}</div>`:''}
+      <a class="claim" href="/smart?book=${encodeURIComponent(o.id)}&channel=web&state=${esc(data.state)}">Claim this offer →</a>
+    </article>`;
+  }).join('');
+}
+
+async function subscribe(){
+  const email=(document.getElementById('subEmail').value||'').trim();
+  const r=await fetch('/api/subscribe',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email,state:sel.value})});
+  const d=await r.json().catch(()=>({}));
+  document.getElementById('subMsg').textContent = d.ok?"✓ You're on the list.":'Enter a valid email to continue.';
+  if(d.ok) document.getElementById('subEmail').value='';
+}
+
+// ---- coming-soon teaser (static) ----
+const COMING_SOON = [
+  {name:'Kalshi', cat:'prediction market', blurb:'Trade real-world event contracts — sports, economics, weather & more. Legal in all 50 states.'},
+  {name:'OKX',    cat:'crypto app',         blurb:'Buy, trade & earn crypto. Sign-up bonus referral landing here soon.'},
+];
+document.getElementById('soon').innerHTML = COMING_SOON.map(o => `
+  <article class="slip soon">
+    <div class="slip-top">
+      <div>
+        <div class="co">${esc(o.name)}</div>
+        <div class="cat">${esc(o.cat)}</div>
+      </div>
+      <span class="stamp soon-stamp">🔜 Coming soon</span>
+    </div>
+    <p class="blurb">${esc(o.blurb)}</p>
+  </article>`).join('');
+
+sel.addEventListener('change', e => load(e.target.value));
+fetch('/api/geo').then(r=>r.json()).then(g=> load(g.state)).catch(()=>load('OH'));
+</script>
+</body>
+</html>

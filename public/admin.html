@@ -1,0 +1,1279 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AnpiesPicks · Dashboard</title>
+<link rel="icon" type="image/svg+xml" href="/favicon-admin.svg">
+<style>
+  :root { --bg:#0b1020; --card:#151b30; --line:#243049; --txt:#e5e7eb; --mut:#94a3b8; --good:#22c55e; --warn:#f59e0b; --bad:#ef4444; --blue:#2563eb; }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--txt)}
+  header{padding:1rem 1.2rem;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
+  h1{font-size:1.2rem;margin:0}
+  nav{display:flex;gap:.3rem;flex-wrap:wrap}
+  nav button{background:transparent;color:var(--mut);border:1px solid transparent;border-radius:.5rem;padding:.45rem .8rem;cursor:pointer;font-size:.95rem}
+  nav button.active{background:var(--card);color:var(--txt);border-color:var(--line)}
+  main{padding:1.2rem;max-width:1100px;margin:0 auto}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:.8rem;padding:1rem;margin:.7rem 0}
+  .grid{display:grid;gap:.7rem}
+  .kpis{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:.8rem;padding:1rem;text-align:center}
+  .kpi b{font-size:1.8rem;display:block}
+  .kpi small{color:var(--mut)}
+  table{width:100%;border-collapse:collapse;font-size:.9rem}
+  th,td{text-align:left;padding:.45rem .5rem;border-bottom:1px solid var(--line)}
+  th{color:var(--mut);font-weight:600}
+  input,select,textarea{background:#0e1426;color:var(--txt);border:1px solid var(--line);border-radius:.5rem;padding:.4rem .5rem;font-size:.9rem;width:100%}
+  textarea{min-height:38px;resize:vertical}
+  .btn{background:var(--blue);color:#fff;border:none;border-radius:.5rem;padding:.45rem .8rem;cursor:pointer;font-size:.9rem}
+  .btn.sm{padding:.25rem .5rem;font-size:.8rem}
+  .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--txt)}
+  .btn.danger{background:var(--bad)}
+  .muted{color:var(--mut)}
+  .flex{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
+  .pill{font-size:.7rem;padding:.1rem .45rem;border-radius:1rem;border:1px solid var(--line);color:var(--mut)}
+  .ok{color:var(--good)} .bad{color:var(--bad)} .warn{color:var(--warn)}
+  code{background:#0e1426;padding:.15rem .4rem;border-radius:.3rem}
+  .toast{position:fixed;bottom:1rem;right:1rem;background:var(--good);color:#04210f;padding:.6rem 1rem;border-radius:.6rem;opacity:0;transition:.3s;font-weight:600}
+  .toast.show{opacity:1}
+  h3{margin:.2rem 0 .6rem}
+  .sortwrap{display:grid;grid-template-columns:1fr;gap:.8rem}
+  @media(min-width:760px){.sortwrap{grid-template-columns:repeat(3,1fr)}}
+  .sortcol{background:#0e1426;border:1px solid var(--line);border-radius:.7rem;padding:.6rem}
+  .sorthead{font-weight:600;font-size:.95rem;margin:.1rem .1rem .5rem;display:flex;align-items:center;justify-content:space-between;gap:.5rem}
+  .drop{min-height:96px;border:2px dashed transparent;border-radius:.5rem;transition:border-color .15s,background .15s}
+  .drop.drag{border-color:var(--good);background:rgba(34,197,94,.08)}
+  .ph{grid-column:1/-1;color:var(--mut);text-align:center;font-size:.82rem;padding:1.6rem .5rem;border:2px dashed var(--line);border-radius:.5rem}
+  .pgal{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:.5rem}
+  .pgal .it{background:#11182b;border:1px solid var(--line);border-radius:.5rem;overflow:hidden;cursor:grab}
+  .pgal .it:active{cursor:grabbing}
+  .pgal .it img{width:100%;height:84px;object-fit:cover;display:block;pointer-events:none}
+  .pgal .it .cap{display:flex;gap:.25rem;padding:.3rem;justify-content:center;flex-wrap:wrap}
+  .pgal .it .cap .btn{padding:.15rem .4rem;font-size:.8rem;line-height:1.1}
+  /* ---- inline cropper ---- */
+  .cropModal{display:none;position:fixed;inset:0;z-index:100}
+  .cropModal.show{display:block}
+  .cropBackdrop{position:absolute;inset:0;background:rgba(0,0,0,.82)}
+  .cropPanel{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:var(--card);
+    border:1px solid var(--line);border-radius:.8rem;padding:1rem;display:flex;flex-direction:column;gap:.7rem;max-width:94vw;max-height:94vh}
+  .cropHead{display:flex;justify-content:space-between;align-items:center;font-weight:600}
+  .cropTools{display:flex;gap:.4rem;align-items:center;flex-wrap:wrap}
+  .cropStage{position:relative;line-height:0;touch-action:none;user-select:none;-webkit-user-select:none;overflow:hidden;margin:0 auto}
+  .cropStage img{max-width:86vw;max-height:66vh;display:block;-webkit-user-drag:none}
+  .cropBox{position:absolute;border:2px solid var(--good);box-shadow:0 0 0 9999px rgba(0,0,0,.5);box-sizing:border-box;cursor:move}
+  .cropBox .ch{position:absolute;width:18px;height:18px;background:var(--good);border-radius:50%;border:2px solid #04210f}
+  .ch.tl{left:-10px;top:-10px;cursor:nwse-resize}.ch.tr{right:-10px;top:-10px;cursor:nesw-resize}
+  .ch.bl{left:-10px;bottom:-10px;cursor:nesw-resize}.ch.br{right:-10px;bottom:-10px;cursor:nwse-resize}
+  .cropFoot{display:flex;justify-content:flex-end;gap:.5rem}
+</style>
+</head>
+<body>
+<header>
+  <h1>🎯 AnpiesPicks</h1>
+  <nav>
+    <button data-tab="overview" class="active">Overview</button>
+    <button data-tab="books">Books &amp; Offers</button>
+    <button data-tab="legal">Legality</button>
+    <button data-tab="links">Links</button>
+    <button data-tab="people">People</button>
+    <button data-tab="grow">Grow</button>
+    <button data-tab="plan">Plan</button>
+    <button data-tab="promos">Promos</button>
+    <button data-tab="picks">Picks</button>
+    <button data-tab="conv">Conversions</button>
+  </nav>
+  <span class="muted" style="margin-left:auto;font-size:.8rem">Lock this page with Cloudflare Access before deploying.</span>
+</header>
+<main>
+  <section id="overview"></section>
+  <section id="books" hidden></section>
+  <section id="legal" hidden></section>
+  <section id="links" hidden></section>
+  <section id="people" hidden></section>
+  <section id="grow" hidden></section>
+  <section id="plan" hidden></section>
+  <section id="promos" hidden></section>
+  <section id="picks" hidden></section>
+  <section id="conv" hidden></section>
+</main>
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const api = (u,opt) => fetch(u,opt).then(r=>{ if(r.status===401||r.status===503){ location.href='/login'; return new Promise(()=>{}); } return r.json(); });
+let DATA = { books:[], offers:[], links:[] };
+let PLAN_IMG = '';
+let PICKS_DATA = [], SHARE_PICK = null;
+const STATES = "AL AK AZ AR CA CO CT DE DC FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY".split(" ");
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1600);}
+function offerFor(id){return DATA.offers.find(o=>o.book_id===id)||{};}
+
+// ---- tabs ----
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');
+  ['overview','books','legal','links','people','grow','plan','promos','picks','conv'].forEach(id=>$('#'+id).hidden=(id!==b.dataset.tab));
+  render(b.dataset.tab);
+});
+
+async function loadBooks(){ DATA = await api('/api/admin/books'); }
+
+// ---- OVERVIEW ----
+async function render(tab){
+  if(tab==='overview') return renderOverview();
+  if(tab==='books') return renderBooks();
+  if(tab==='legal') return renderLegal();
+  if(tab==='links') return renderLinks();
+  if(tab==='people') return renderPeople();
+  if(tab==='grow') return renderGrow();
+  if(tab==='plan') return renderPlan();
+  if(tab==='promos') return renderPromos();
+  if(tab==='picks') return renderPicks();
+  if(tab==='conv') return renderConv();
+}
+async function renderOverview(){
+  const [s, pr, ev, settings] = await Promise.all([api('/api/admin/stats'), api('/api/admin/people'), api('/api/admin/events'), api('/api/admin/settings')]);
+  const t = s.totals||{};
+  const people = pr.people||[];
+  const events = ev.events||[];
+  const urlsSet = DATA.books.filter(b=>b.referral_url).length;
+  const plans = people.map(planFor).filter(Boolean).sort((a,b)=>a.priority-b.priority);
+  const upcoming = events.filter(e=>{const d=daysUntil(e.date); return d>=0 && d<=14;});
+  const dow = new Date().getDay();
+  const check=(ok,txt)=>`<div style="padding:.15rem 0">${ok?'✅':'⬜'} ${txt}</div>`;
+  // goal + projection
+  const goal = parseFloat(settings.monthly_goal||'0')||0;
+  const earnedMonth = t.earned_month||0;
+  const now=new Date(), dom=now.getDate(), dim=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
+  const projected = dom>0? earnedMonth/dom*dim : 0;
+  const pct = goal>0? Math.min(100, Math.round(earnedMonth/goal*100)) : 0;
+  const goalHtml = goal>0
+    ? `<div class="card"><h3>🎯 This month: $${earnedMonth.toFixed(0)} / $${goal.toFixed(0)}</h3>
+        <div style="background:#0e1426;border:1px solid var(--line);border-radius:1rem;height:14px;overflow:hidden"><div style="height:100%;width:${pct}%;background:#22c55e"></div></div>
+        <p class="muted" style="margin-top:.4rem">${pct}% there · on pace for ~$${projected.toFixed(0)} by month end · <button class="btn sm ghost" onclick="gotoTab('grow')">change goal</button></p></div>`
+    : `<div class="card"><h3>🎯 Set a monthly goal</h3><p class="muted">Give yourself a target to aim at — it'll show your progress + projected payout here. <button class="btn sm" onclick="gotoTab('grow')">Set a goal →</button></p></div>`;
+
+  const weekendHtml = [5,6,0].includes(dow) ? `<div style="margin-bottom:.6rem">🏈 <b>It's the weekend — peak sports time.</b> Good day to send links and post your share link.</div>` : '';
+  const eventsHtml = upcoming.map(e=>`<div style="margin-bottom:.5rem">📅 <b>${e.name}</b> in ${daysUntil(e.date)}d <span class="muted">(${e.date})</span> — high-intent window, push your ${e.sport||'sports'} apps. <button class="btn sm ghost" onclick="copy(location.origin+'/smart?channel=event')">copy share link</button></div>`).join('');
+  const plansHtml = plans.map(p=>`
+    <div style="border-top:1px solid var(--line);padding:.6rem 0">
+      <div>${p.icon} <b>${p.label}</b> — ${p.person} <span class="muted">(${p.book_name})</span></div>
+      <div class="flex" style="margin-top:.35rem">
+        ${p.msg?`<button class="btn sm" data-msg="${esc(p.msg)}" onclick="copyMsg(this)">copy message</button>`:''}
+        <button class="btn sm ghost" onclick="copy('${p.url}')">copy link</button>
+        <button class="btn sm ghost" onclick="gotoTab('people')">update stage →</button>
+      </div>
+    </div>`).join('');
+  const hasAny = weekendHtml || eventsHtml || plansHtml;
+
+  // ---- "What's working" panel (renders data /api/admin/stats already returns) ----
+  const wByChannel=s.byChannel||[], wByState=s.byState||[], wFunnel=s.funnel||[];
+  const wByBook=(s.byBook||[]).filter(b=>(b.clicks||0)>0||(b.signups||0)>0||(b.earned||0)>0);
+  const maxCh=Math.max(1,...wByChannel.map(x=>x.clicks||0));
+  const maxSt=Math.max(1,...wByState.map(x=>x.clicks||0));
+  const wbar=(label,val,max,color)=>`<div style="display:flex;align-items:center;gap:.5rem;margin:.28rem 0">
+    <div class="muted" style="width:84px;flex:0 0 auto;font-size:.82rem;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(label)}</div>
+    <div style="flex:1;background:#0e1426;border:1px solid var(--line);border-radius:.4rem;overflow:hidden;height:16px"><div style="height:100%;width:${Math.max(4,Math.round((val/max)*100))}%;background:${color||'#2563eb'}"></div></div>
+    <div style="flex:0 0 auto;font-size:.82rem;font-variant-numeric:tabular-nums">${val}</div></div>`;
+  const fOrder=['signup','deposit','wager','bonus_posted','paid'];
+  const fMap=Object.fromEntries(wFunnel.map(f=>[f.stage,f.n]));
+  const funnelHtml=fOrder.map(st=>`<div style="text-align:center;flex:1"><b style="display:block;font-size:1.3rem">${fMap[st]||0}</b><small class="muted" style="font-size:.66rem">${st.replace('_',' ')}</small></div>`).join('<div class="muted" style="align-self:center">→</div>');
+  const worksHtml = `
+    <div class="card"><h3>📈 What's working <span class="muted" style="font-weight:400;font-size:.8rem">— where your clicks &amp; money come from</span></h3>
+    ${(t.clicks||0)>0 ? `
+      <div class="row2" style="gap:1.2rem">
+        <div><div class="muted" style="font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.3rem">Clicks by channel</div>
+          ${wByChannel.length?wByChannel.map(x=>wbar(x.channel,x.clicks||0,maxCh,'#33B96A')).join(''):'<p class="muted" style="font-size:.85rem">—</p>'}</div>
+        <div><div class="muted" style="font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.3rem">Top states</div>
+          ${wByState.length?wByState.slice(0,6).map(x=>wbar(x.state,x.clicks||0,maxSt,'#2DD1C4')).join(''):'<p class="muted" style="font-size:.85rem">—</p>'}</div>
+      </div>
+      ${wByBook.length?`<div class="muted" style="font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;margin:.9rem 0 .3rem">By app</div>
+      <table><tr><th>App</th><th>Clicks</th><th>Signups</th><th>Earned</th></tr>
+      ${wByBook.map(b=>`<tr><td>${esc(b.name)}</td><td>${b.clicks||0}</td><td>${b.signups||0}</td><td>$${(b.earned||0).toFixed(0)}</td></tr>`).join('')}</table>`:''}
+      <div class="muted" style="font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;margin:.9rem 0 .3rem">Funnel</div>
+      <div class="flex" style="justify-content:space-between;background:#0e1426;border:1px solid var(--line);border-radius:.6rem;padding:.7rem .5rem">${funnelHtml}</div>
+    ` : `<p class="muted">No clicks yet. The moment you share a link, this shows <b>which channel</b>, <b>which state</b>, and <b>which app</b> are actually working — so you know where to double down instead of guessing.</p>`}
+    </div>`;
+
+  $('#overview').innerHTML = `
+    <div class="card" style="border-color:#2563eb">
+      🔒 <b>Your private command center.</b> <span class="muted">Only you see this page — it's behind your password. The public only sees the landing page.</span>
+    </div>
+
+    ${goalHtml}
+
+    <div class="card"><h3>☀️ Today's plays${plans.length?` <span class="pill">${plans.length} to do</span>`:''}</h3>
+      ${weekendHtml}${eventsHtml}${plansHtml}
+      ${hasAny?'':`<p class="muted">Nothing needs you right now. Send a link below — when someone clicks but doesn't sign up, the nudge to follow up shows up here automatically.</p>`}
+    </div>
+
+    <div class="card"><h3>📨 Refer someone in 10 seconds</h3>
+      <p class="muted">Pick a book + name → get their personal link AND a ready-to-send message.</p>
+      <div class="flex">
+        <label>Book<select id="ccBook">${DATA.books.filter(b=>b.referral_url).map(b=>`<option value="${b.id}">${b.name}</option>`).join('')}</select></label>
+        <label>Person<input id="ccName" placeholder="Jake"></label>
+        <button class="btn" onclick="ccRefer()">Make link + message</button>
+      </div>
+      <div id="ccOut" style="margin-top:.7rem"></div>
+    </div>
+
+    <div class="card"><h3>📣 Or share with everyone at once</h3>
+      <p class="muted">One link that auto-sends each person to the best app for their state. Put it in your bio or group chats.</p>
+      <div class="flex"><code id="ccSmart">${origin()}/smart?channel=social</code><button class="btn sm" onclick="copy($('#ccSmart').textContent)">copy</button></div>
+    </div>
+
+    <div class="grid kpis">
+      <div class="kpi"><b>${t.clicks||0}</b><small>clicks</small></div>
+      <div class="kpi"><b>${t.signups||0}</b><small>signups</small></div>
+      <div class="kpi"><b>$${(t.earned||0).toFixed(0)}</b><small>earned</small></div>
+      <div class="kpi"><b>$${(t.pending||0).toFixed(0)}</b><small>pending</small></div>
+    </div>
+
+    ${worksHtml}
+
+    <div class="card"><h3>🚀 Getting started</h3>
+      ${check(urlsSet>0, `Add your referral links — <b>${urlsSet}/${DATA.books.length}</b> done <span class="muted">(Links tab)</span>`)}
+      ${check((t.clicks||0)>0, 'Share your first link')}
+      ${check((t.signups||0)>0, 'Get your first signup')}
+      ${check((t.earned||0)>0, 'Earn your first bonus 💰')}
+    </div>
+
+    <details class="card"><summary style="cursor:pointer"><b>📖 How to get your first referrals (novice playbook)</b></summary>
+      <ol class="muted" style="line-height:1.7;margin:.5rem 0">
+        <li><b>Start with people who already watch sports</b> — friends, family, group chats, your fantasy league. They're who'll actually use these apps.</li>
+        <li><b>Lead with "we BOTH get free money."</b> It costs them nothing and they get a bonus too. Use the message generator above.</li>
+        <li><b>Send each person their OWN link</b> (the box above) — that's how you know who actually used it.</li>
+        <li><b>Push one or two apps, not all 17.</b> Easier to explain, less spammy.</li>
+        <li><b>Drop your share link where sports fans are</b> — your story/bio, a league chat, a Discord. Don't spam subreddits that ban referral links.</li>
+        <li><b>Always disclose it's a referral link.</b> It's the law, and it actually converts better.</li>
+        <li><b>Follow up.</b> Most signups happen after a reminder — this page tells you who to nudge.</li>
+      </ol>
+    </details>`;
+}
+async function ccRefer(){
+  const book_id=$('#ccBook').value, person=$('#ccName').value.trim();
+  if(!person) return toast('name required');
+  const r=await api('/api/admin/refer',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({book_id,person})});
+  if(!r.slug) return;
+  const url=origin()+'/go/'+r.slug;
+  $('#ccOut').innerHTML=`
+    <div>📎 ${person}'s link: <code>${url}</code> <button class="btn sm" onclick="copy('${url}')">copy</button> <button class="btn sm ghost" onclick="showQR('${url}')">QR</button></div>
+    <label style="display:block;margin-top:.5rem">✍️ Message (edit if you like):
+      <textarea id="ccMsg" style="min-height:80px">${messageFor(book_id,person,url)}</textarea></label>
+    <button class="btn" onclick="copy($('#ccMsg').value)">copy message</button>`;
+  $('#ccName').value='';
+}
+function messageFor(bookId, person, url){
+  const b=DATA.books.find(x=>x.id===bookId)||{};
+  const o=DATA.offers.find(x=>x.book_id===bookId)||{};
+  const theirs=(o.referee_bonus && !/unverified|tbd|verify/i.test(o.referee_bonus))?o.referee_bonus:'a signup bonus';
+  return `Hey ${person}! I've been using ${b.name} for sports picks 🏈 — if you sign up with my link we BOTH get a bonus (you get ${theirs}). Takes 2 min. Here's your link: ${url}`;
+}
+
+// ---- follow-up cadence (Today's plays) ----
+function daysSince(ts){ if(!ts) return Infinity; const d=new Date(String(ts).replace(' ','T')+'Z'); return (Date.now()-d.getTime())/86400000; }
+function daysUntil(dateStr){ const d=new Date(dateStr+'T12:00:00'); const n=new Date(); n.setHours(0,0,0,0); return Math.round((d-n)/86400000); }
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+function copyMsg(btn){ copy(btn.dataset.msg); }
+function gotoTab(name){ const b=document.querySelector(`nav button[data-tab="${name}"]`); if(b) b.click(); }
+function qrUrl(u){ return 'https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=10&data='+encodeURIComponent(u); }
+function showQR(u){ window.open(qrUrl(u),'_blank'); }
+
+// ---- image upload from phone (compress in-browser, store in DB, get /img URL) ----
+function compressImage(file, maxDim, quality){
+  return new Promise((resolve,reject)=>{
+    const img=new Image(); const url=URL.createObjectURL(file);
+    img.onload=()=>{ URL.revokeObjectURL(url);
+      let w=img.width, h=img.height;
+      if(w>=h && w>maxDim){ h=Math.round(h*maxDim/w); w=maxDim; }
+      else if(h>w && h>maxDim){ w=Math.round(w*maxDim/h); h=maxDim; }
+      const cv=document.createElement('canvas'); cv.width=w; cv.height=h;
+      cv.getContext('2d').drawImage(img,0,0,w,h);
+      let q=quality, out=cv.toDataURL('image/jpeg',q);
+      while(out.length>900000 && q>0.4){ q-=0.15; out=cv.toDataURL('image/jpeg',q); }
+      resolve(out);
+    };
+    img.onerror=()=>{ URL.revokeObjectURL(url); reject(new Error('load failed')); };
+    img.src=url;
+  });
+}
+function pickImage(onDone){
+  const inp=document.createElement('input'); inp.type='file'; inp.accept='image/*';
+  inp.onchange=async()=>{ const f=inp.files&&inp.files[0]; if(!f) return;
+    toast('Processing image…');
+    try{
+      const dataUrl=await compressImage(f,1080,0.7);
+      const r=await api('/api/admin/images',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({data:dataUrl})});
+      if(r&&r.url){ toast('Image uploaded'); onDone(origin()+r.url, r.url); }
+      else toast((r&&r.error)||'Upload failed');
+    }catch(e){ toast('Could not read image'); }
+  };
+  inp.click();
+}
+// ---- multi-image upload (compress each, store in DB) → array of full /img URLs ----
+async function uploadOneFile(file){
+  const dataUrl=await compressImage(file,1080,0.7);
+  const r=await api('/api/admin/images',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({data:dataUrl})});
+  return (r&&r.url)?origin()+r.url:null;
+}
+// Upload many image files into a bucket (default 'inbox'); each is compressed + stored
+async function uploadProofFiles(fileList, kind){
+  const files=[...(fileList||[])].filter(f=>f.type&&f.type.startsWith('image/'));
+  if(!files.length){ toast('No images selected'); return 0; }
+  let ok=0, i=0;
+  for(const f of files){
+    i++; toast(`Uploading ${i}/${files.length}…`);
+    try{
+      const url=await uploadOneFile(f);
+      if(!url){ continue; }
+      const r=await api('/api/admin/proofs',{method:'POST',headers:{'content-type':'application/json'},
+        body:JSON.stringify({kind:kind||'inbox', image_url:url})});
+      if(!(r&&r.error)) ok++;
+    }catch(e){ /* skip a bad file, keep going */ }
+  }
+  toast(ok?`Uploaded ${ok} image${ok>1?'s':''}`:'Upload failed');
+  if(ok) renderPicks();
+  return ok;
+}
+// multi-file picker (no labels) — lands everything in the Unsorted tray
+function pickProofFiles(){
+  const inp=document.createElement('input'); inp.type='file'; inp.accept='image/*'; inp.multiple=true;
+  inp.onchange=()=>{ if(inp.files&&inp.files.length) uploadProofFiles(inp.files,'inbox'); };
+  inp.click();
+}
+// move an uploaded image to a different bucket
+async function setProofKind(id,kind){
+  const r=await api('/api/admin/proofs/'+id,{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify({kind})});
+  if(r&&r.error) return toast(r.error);
+  renderPicks();
+}
+// ---- drag-to-sort between buckets (and OS file-drop) ----
+let DRAG_PROOF=null;
+function proofDragStart(ev,id){ DRAG_PROOF=id; try{ev.dataTransfer.effectAllowed='move';ev.dataTransfer.setData('text/plain',String(id));}catch(e){} }
+function wireProofZone(id){
+  const z=document.getElementById(id); if(!z||z._wired) return; z._wired=true;
+  const stop=e=>{e.preventDefault();e.stopPropagation();};
+  ['dragenter','dragover'].forEach(ev=>z.addEventListener(ev,e=>{stop(e); try{e.dataTransfer.dropEffect=DRAG_PROOF!=null?'move':'copy';}catch(_){} z.classList.add('drag');}));
+  ['dragleave','dragend'].forEach(ev=>z.addEventListener(ev,e=>{ if(e.target===z) z.classList.remove('drag'); }));
+  z.addEventListener('drop',e=>{ stop(e); z.classList.remove('drag');
+    const kind=z.dataset.kind;
+    const files=e.dataTransfer&&e.dataTransfer.files;
+    if(DRAG_PROOF!=null){ const moved=DRAG_PROOF; DRAG_PROOF=null; setProofKind(moved,kind); }
+    else if(files&&files.length){ uploadProofFiles(files,kind); }
+  });
+}
+function mk(priority,icon,label,p,url,msg){ return {priority,icon,label,person:p.person,book_name:p.book_name,url,msg}; }
+function planFor(p){
+  const url=origin()+'/go/'+p.slug;
+  const dC=daysSince(p.last_click), dV=daysSince(p.last_conv_at), dM=daysSince(p.created_at);
+  const b=DATA.books.find(x=>x.id===p.book_id)||{name:p.book_name};
+  const o=DATA.offers.find(x=>x.book_id===p.book_id)||{};
+  const act=(o.required_action && !/tbd|verify/i.test(o.required_action))?o.required_action:'finish the last step';
+  if(p.stage==='paid') return null;
+  if(p.stage==='bonus_posted') return dV>=7?mk(3,'⏳','Confirm bonus paid out',p,url,''):null;
+  if(p.stage==='wager'||p.stage==='deposit') return dV>=2?mk(1,'🟠','Remind to finish',p,url,`Almost there on ${b.name}! Once you ${String(act).toLowerCase()}, the bonus drops for both of us 🙌 Need help?`):null;
+  if(p.stage==='signup') return dV>=2?mk(1,'🟠','Nudge to deposit',p,url,`Hey ${p.person}! You're signed up on ${b.name} — just make your first deposit and the bonus unlocks for both of us. Want me to walk you through it?`):null;
+  if((p.clicks||0)>0) return dC>=1?mk(0,'🔴','Clicked, no signup — follow up',p,url,`Hey ${p.person}, saw you checked out ${b.name} 👀 finish signing up with my link and we both get the bonus. Here it is again: ${url}`):null;
+  return dM>=1?mk(0,'🔴','Never opened — resend the link',p,url,`Hey ${p.person}, did you catch the ${b.name} link I sent? We both get a bonus when you join — here it is: ${url}`):null;
+}
+
+// ---- GROW: intent calendar + audience + affiliate ----
+const KNOWN_AFF=['prizepicks','underdog','dk-pick6','sleeper','betr'];
+let GROW_EVENTS=[];
+async function renderGrow(){
+  const [ev, sub, settings] = await Promise.all([api('/api/admin/events'), api('/api/admin/subscribers'), api('/api/admin/settings')]);
+  const events=ev.events||[], subs=sub.subscribers||[];
+  GROW_EVENTS=events;
+  const upcoming=events.filter(e=>daysUntil(e.date)>=0);
+  $('#grow').innerHTML = `
+    <div class="card"><h3>🎯 Monthly goal</h3>
+      <p class="muted">Set a target — your home screen shows progress + a projected payout.</p>
+      <div class="flex"><label>Goal ($/month)<input id="goalInput" type="number" value="${settings.monthly_goal||''}" placeholder="200"></label>
+        <button class="btn" onclick="saveGoal()">Save goal</button></div>
+    </div>
+
+    <div class="card"><h3>🪪 Your bio-link page</h3>
+      <p class="muted">A personal page for your social bio: <code>${origin()}/me</code> <button class="btn sm ghost" onclick="window.open('/me','_blank')">view</button></p>
+      <div class="row2">
+        <label>Display name<input id="pfName" value="${esc(settings.display_name||'')}" placeholder="Your name / handle"></label>
+        <label>Short bio<input id="pfBio" value="${esc(settings.bio||'')}" placeholder="Sports picks + bonuses 🤝"></label>
+        <label>X / Twitter<input id="pfTw" value="${esc(settings.twitter||'')}" placeholder="@you"></label>
+        <label>Instagram<input id="pfIg" value="${esc(settings.instagram||'')}" placeholder="@you"></label>
+        <label>TikTok<input id="pfTt" value="${esc(settings.tiktok||'')}" placeholder="@you"></label>
+      </div>
+      <button class="btn" style="margin-top:.5rem" onclick="saveProfile()">Save profile</button>
+    </div>
+
+    <div class="card"><h3>📝 Content kit</h3>
+      <p class="muted">Ready-to-post captions tied to a big event — for your story, group chat, or socials. Uses your smart link so everyone lands on the right app for their state.</p>
+      <div class="flex"><label>Event<select id="ckEvent">${upcoming.map(e=>`<option value="${e.id}">${e.date} — ${e.name}</option>`).join('')||'<option value="">add an event below first</option>'}</select></label>
+        <button class="btn" onclick="genPosts()">Generate posts</button></div>
+      <div id="ckPosts" style="margin-top:.6rem"></div>
+    </div>
+
+    <div class="card"><h3>📅 Intent calendar</h3>
+      <p class="muted">Add big games / fights / playoff dates. Your home screen will prompt you to push links in the days before — when demand and signups spike.</p>
+      <div class="flex">
+        <label>Date<input type="date" id="evDate"></label>
+        <label>Event<input id="evName" placeholder="UFC 320 / NFL Week 1"></label>
+        <label>Sport<select id="evSport">${['nfl','nba','ufc','mlb','nhl','ncaa','soccer','other'].map(x=>`<option>${x}</option>`).join('')}</select></label>
+        <button class="btn" onclick="addEvent()">Add</button>
+      </div>
+      <table style="margin-top:.6rem">${events.map(e=>`<tr><td>${e.date}</td><td>${e.name}</td><td><span class="pill">${e.sport||''}</span></td><td><button class="btn sm danger" onclick="delEvent(${e.id})">×</button></td></tr>`).join('')||'<tr><td class=muted>No events yet — add the next big game or fight.</td></tr>'}</table>
+    </div>
+
+    <div class="card"><h3>📧 Your audience <span class="pill">${subs.length}</span></h3>
+      <p class="muted">People who opted in on your landing page to hear about the best new bonuses — your owned list. When a big promo drops, you can reach them all.</p>
+      ${subs.length?`<table><tr><th>Email</th><th>State</th><th>When</th><th></th></tr>${subs.map(x=>`<tr><td>${x.email}</td><td>${x.state||''}</td><td class=muted>${(x.created_at||'').slice(0,10)}</td><td><button class="btn sm danger" onclick="delSub(${x.id})">×</button></td></tr>`).join('')}</table><button class="btn sm ghost" style="margin-top:.5rem" onclick="exportSubs()">copy all emails</button>`:`<p class="muted">No sign-ups yet. Share your landing page <code>${origin()}/</code> — the opt-in box is near the bottom.</p>`}
+    </div>
+
+    <div class="card"><h3>🎓 Graduate to official affiliate programs</h3>
+      <p class="muted">Refer-a-friend caps out. Bigger money + <b>fully automatic conversion tracking</b> come from official affiliate/CPA programs. These books are known to run one — apply once you have a few signups to show.</p>
+      <table><tr><th>Book</th><th>Status</th><th>Program link</th></tr>
+      ${DATA.books.filter(b=>KNOWN_AFF.includes(b.id)||(b.affiliate_status&&b.affiliate_status!=='none')).map(b=>`<tr>
+        <td>${b.name}${KNOWN_AFF.includes(b.id)?' <span class="pill">has program</span>':''}</td>
+        <td><select onchange="setAff('${b.id}',this.value)">${['none','interested','applied','accepted','rejected'].map(st=>`<option ${b.affiliate_status===st?'selected':''}>${st}</option>`).join('')}</select></td>
+        <td><input id="aff-${b.id}" value="${b.affiliate_url||''}" placeholder="program URL" style="width:100%"> <button class="btn sm" onclick="setAff('${b.id}',null)">save</button></td>
+      </tr>`).join('')}</table>
+      <p class="muted" style="margin-top:.5rem">Tip: search "&lt;app name&gt; affiliate program", paste the apply link here, and track your status.</p>
+    </div>`;
+}
+async function saveGoal(){ await api('/api/admin/settings',{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify({monthly_goal:$('#goalInput').value||'0'})}); toast('Goal saved'); }
+async function saveProfile(){ await api('/api/admin/settings',{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify({display_name:$('#pfName').value,bio:$('#pfBio').value,twitter:$('#pfTw').value,instagram:$('#pfIg').value,tiktok:$('#pfTt').value})}); toast('Profile saved'); }
+function genPosts(){
+  const e=GROW_EVENTS.find(x=>x.id===+$('#ckEvent').value); if(!e) return toast('add an event first');
+  const smart=origin()+'/smart?channel=social';
+  const emoji=e.sport==='ufc'?'🥊':(e.sport==='nfl'||e.sport==='ncaa')?'🏈':e.sport==='nba'?'🏀':e.sport==='mlb'?'⚾':'🔥';
+  const posts=[
+    `🔥 ${e.name} ${emoji} this week! If you're watching, play along — new users get a signup bonus (and so do I when you join with my link) 👇\n${smart}\n#ad`,
+    `Who's tapping in for ${e.name}? ${emoji} Grab a free signup bonus on the app I use — here's my link, we both get a bonus:\n${smart}`,
+    `${e.name} is almost here. New players get a bonus right now — lock it in with my link before it starts 👇\n${smart}\n(referral)`
+  ];
+  $('#ckPosts').innerHTML = posts.map((p,i)=>`<div style="border-top:1px solid var(--line);padding:.5rem 0"><textarea style="min-height:72px" id="ck${i}">${p}</textarea><button class="btn sm" onclick="copy($('#ck${i}').value)">copy post ${i+1}</button></div>`).join('');
+}
+async function addEvent(){ const date=$('#evDate').value, name=$('#evName').value.trim(); if(!date||!name) return toast('date + name'); await api('/api/admin/events',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({date,name,sport:$('#evSport').value})}); renderGrow(); }
+async function delEvent(id){ await api('/api/admin/events/'+id,{method:'DELETE'}); renderGrow(); }
+async function delSub(id){ await api('/api/admin/subscribers/'+id,{method:'DELETE'}); renderGrow(); }
+async function exportSubs(){ const {subscribers}=await api('/api/admin/subscribers'); copy((subscribers||[]).map(s=>s.email).join(', ')); toast('Emails copied'); }
+async function setAff(id,status){
+  const cur=DATA.books.find(b=>b.id===id)||{};
+  const url=document.getElementById('aff-'+id).value.trim();
+  await api('/api/admin/affiliate/'+id,{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify({affiliate_status: status===null?(cur.affiliate_status||'none'):status, affiliate_url:url})});
+  await loadBooks(); toast('Saved');
+}
+
+// ---- BOOKS & OFFERS ----
+async function renderBooks(){
+  let histHtml='';
+  try{
+    const {history}=await api('/api/admin/bonus-history');
+    if(history&&history.length){
+      const rows=history.slice(0,15).map(h=>`<tr><td>${(h.created_at||'').slice(0,16).replace('T',' ')}</td><td><b>${h.book_name}</b></td><td>you: ${h.referrer_bonus||'—'}</td><td>them: ${h.referee_bonus||'—'}</td><td><span class="pill">${h.source||''}</span></td></tr>`).join('');
+      histHtml=`<details class="card"><summary style="cursor:pointer"><b>📈 Recent bonus changes</b> <span class="muted">— logged from saves here + your iPhone Shortcut</span></summary>
+        <table style="margin-top:.5rem"><tr><th>When</th><th>Book</th><th>You</th><th>Friend</th><th>Via</th></tr>${rows}</table></details>`;
+    }
+  }catch{}
+  $('#books').innerHTML = histHtml + DATA.books.map(b=>{const o=offerFor(b.id);return `
+    <div class="card" data-book="${b.id}">
+      <div class="flex"><b style="font-size:1.05rem">${b.favorite?'★ ':''}${b.name}</b> <span class="pill">${b.category.replace(/_/g,' ')}</span> <span class="pill">${b.id}</span></div>
+      <div class="row2" style="margin-top:.6rem">
+        <label>Name<input data-f="name" value="${b.name||''}"></label>
+        <label>Category<select data-f="category">${['dfs_pickem','social_sportsbook','sweeps_casino','prediction_market','sportsbook','fantasy'].map(c=>`<option ${c===b.category?'selected':''}>${c}</option>`).join('')}</select></label>
+      </div>
+      <label>Blurb<textarea data-f="blurb">${b.blurb||''}</textarea></label>
+      <div class="flex" style="margin:.4rem 0">
+        <label class="flex"><input type="checkbox" data-f="active" ${b.active?'checked':''} style="width:auto"> active</label>
+        <label class="flex"><input type="checkbox" data-f="favorite" ${b.favorite?'checked':''} style="width:auto"> favorite</label>
+        <label class="flex">min age <input type="number" data-f="min_age" value="${b.min_age||18}" style="width:70px"></label>
+      </div>
+      <h3 style="margin-top:.8rem">Referral offer</h3>
+      <div class="row2">
+        <label>You (referrer) bonus<input data-o="referrer_bonus" value="${o.referrer_bonus||''}"></label>
+        <label>Your $ value (rank)<input type="number" step="0.01" data-o="referrer_value" value="${o.referrer_value||0}"></label>
+        <label>Friend (referee) bonus<input data-o="referee_bonus" value="${o.referee_bonus||''}"></label>
+        <label>Friend $ value<input type="number" step="0.01" data-o="referee_value" value="${o.referee_value||0}"></label>
+      </div>
+      <label>Required action<input data-o="required_action" value="${o.required_action||''}"></label>
+      <div class="row2">
+        <label>Promo expires<input type="date" data-o="promo_expires" value="${o.promo_expires||''}"></label>
+        <label>Verified on<input type="date" data-o="verified_at" value="${o.verified_at||''}"></label>
+      </div>
+      <div style="margin-top:.6rem"><button class="btn" onclick="saveBook('${b.id}')">Save ${b.name}</button></div>
+    </div>`}).join('');
+}
+async function saveBook(id){
+  const el = document.querySelector(`[data-book="${id}"]`);
+  const g = f => el.querySelector(`[data-f="${f}"]`);
+  const go = f => el.querySelector(`[data-o="${f}"]`);
+  const book = { name:g('name').value, category:g('category').value, blurb:g('blurb').value,
+    notes:null, website:null, color:'#3b82f6', min_age:+g('min_age').value,
+    active:g('active').checked, favorite:g('favorite').checked };
+  await api('/api/admin/books/'+id,{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify(book)});
+  const offer = { referrer_bonus:go('referrer_bonus').value, referrer_value:+go('referrer_value').value,
+    referee_bonus:go('referee_bonus').value, referee_value:+go('referee_value').value,
+    required_action:go('required_action').value, promo_expires:go('promo_expires').value||null,
+    verified_at:go('verified_at').value||null };
+  await api('/api/admin/offers/'+id,{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify(offer)});
+  await loadBooks(); toast('Saved '+id);
+}
+
+// ---- LEGALITY ----
+async function renderLegal(){
+  const opts = DATA.books.map(b=>`<option value="${b.id}">${b.name}</option>`).join('');
+  $('#legal').innerHTML = `<div class="card"><div class="flex"><label>Book <select id="legalBook">${opts}</select></label>
+    <span class="muted">Set status + whether new users can actually sign up + if the promo is live. Save each row.</span></div>
+    <div id="legalGrid"></div></div>`;
+  $('#legalBook').onchange = drawLegalGrid; drawLegalGrid();
+}
+async function drawLegalGrid(){
+  const bid = $('#legalBook').value;
+  const {legality} = await api('/api/admin/legality/'+bid);
+  const map = Object.fromEntries(legality.map(r=>[r.state,r]));
+  $('#legalGrid').innerHTML = `<table><tr><th>State</th><th>Status</th><th>Signups working</th><th>Promo live</th><th>Note</th><th></th></tr>
+    ${STATES.map(st=>{const r=map[st]||{};return `<tr data-st="${st}">
+      <td><b>${st}</b></td>
+      <td><select data-c="status">${['unknown','legal','unavailable','gray','banned'].map(s=>`<option ${r.status===s?'selected':''}>${s}</option>`).join('')}</select></td>
+      <td style="text-align:center"><input type="checkbox" data-c="accepting_signups" ${r.accepting_signups?'checked':''}></td>
+      <td style="text-align:center"><input type="checkbox" data-c="promo_active" ${r.promo_active?'checked':''}></td>
+      <td><input data-c="product_note" value="${r.product_note||''}" placeholder="e.g. Arena only"></td>
+      <td><button class="btn sm" onclick="saveLegal('${bid}','${st}')">save</button></td></tr>`}).join('')}</table>`;
+}
+async function saveLegal(bid,st){
+  const tr=document.querySelector(`#legalGrid tr[data-st="${st}"]`);
+  const g=c=>tr.querySelector(`[data-c="${c}"]`);
+  await api('/api/admin/legality',{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify({
+    book_id:bid, state:st, status:g('status').value, accepting_signups:g('accepting_signups').checked,
+    promo_active:g('promo_active').checked, product_note:g('product_note').value,
+    verified_at:new Date().toISOString().slice(0,10) })});
+  toast(bid+' / '+st+' saved');
+}
+
+// ---- LINKS ----
+function origin(){return location.origin;}
+function renderLinks(){
+  const bopts = DATA.books.map(b=>`<option value="${b.id}">${b.name}</option>`).join('');
+  const chans = ['direct','tiktok','reddit','discord','instagram','x','text','qr'];
+  $('#links').innerHTML = `
+    <div class="card"><h3>Each book's real referral URL</h3>
+      <p class="muted">Paste the single referral link/code each app gave you. The smart link AND every per-person link inherit these automatically.</p>
+      <table>${DATA.books.map(b=>`<tr><td style="white-space:nowrap">${b.name}</td>
+        <td style="width:100%"><input id="ru-${b.id}" value="${b.referral_url||''}" placeholder="https://..."></td>
+        <td><button class="btn sm" onclick="saveRefUrl('${b.id}')">save</button></td></tr>`).join('')}</table>
+    </div>
+    <div class="card"><h3>Your ONE smart link</h3>
+      <p class="muted">Share this anywhere — it auto-routes each visitor to the best app available in their state. Add a channel to track where signups come from.</p>
+      <div class="flex"><label>Channel <select id="smartChan">${chans.map(c=>`<option>${c}</option>`).join('')}</select></label>
+        <code id="smartUrl"></code><button class="btn sm" onclick="copy($('#smartUrl').textContent)">copy</button><button class="btn sm ghost" onclick="showQR($('#smartUrl').textContent)">QR</button></div>
+    </div>
+    <div class="card"><h3>Add / update a tracked link</h3>
+      <div class="row2">
+        <label>Book<select id="nlBook">${bopts}</select></label>
+        <label>Channel<select id="nlChan">${chans.map(c=>`<option>${c}</option>`).join('')}</select></label>
+        <label>Slug (/go/&lt;slug&gt;)<input id="nlSlug" placeholder="rebet-tiktok"></label>
+        <label>Real referral URL<input id="nlUrl" placeholder="https://..."></label>
+      </div>
+      <button class="btn" style="margin-top:.5rem" onclick="addLink()">Save link</button>
+    </div>
+    <div class="card"><h3>All links</h3>
+      <table><tr><th>Book</th><th>Channel</th><th>Share URL</th><th>Target</th><th></th></tr>
+      ${DATA.links.map(l=>`<tr><td>${l.book_id}</td><td>${l.channel}</td>
+        <td><code>${origin()}/go/${l.slug}</code> <button class="btn sm ghost" onclick="copy('${origin()}/go/${l.slug}')">copy</button></td>
+        <td class="muted" style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${l.target_url}</td>
+        <td><button class="btn sm danger" onclick="delLink(${l.id})">×</button></td></tr>`).join('')}
+      </table></div>`;
+  const upd=()=>$('#smartUrl').textContent = origin()+'/smart?channel='+$('#smartChan').value;
+  $('#smartChan').onchange=upd; upd();
+}
+async function addLink(){
+  const body={book_id:$('#nlBook').value,channel:$('#nlChan').value,slug:$('#nlSlug').value.trim(),target_url:$('#nlUrl').value.trim()};
+  if(!body.slug||!body.target_url) return toast('slug + URL required');
+  await api('/api/admin/links',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
+  await loadBooks(); renderLinks(); toast('Link saved');
+}
+async function delLink(id){ await api('/api/admin/links/'+id,{method:'DELETE'}); await loadBooks(); renderLinks(); }
+async function saveRefUrl(id){ await api('/api/admin/refurl/'+id,{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify({referral_url:$('#ru-'+id).value.trim()})}); await loadBooks(); toast('Saved '+id); }
+function copy(t){navigator.clipboard.writeText(t);toast('Copied');}
+
+// ---- PEOPLE (per-person referral pipeline) ----
+async function renderPeople(){
+  const refBooks = DATA.books.filter(b=>b.referral_url);
+  const bopts = refBooks.map(b=>`<option value="${b.id}">${b.name}</option>`).join('');
+  const [pe, pr] = await Promise.all([api('/api/admin/people'), api('/api/admin/prospects')]);
+  const people = pe.people||[]; const prospects = pr.prospects||[];
+  $('#people').innerHTML = `
+    <div class="card"><h3>🧠 Who to ask</h3>
+      <p class="muted">The hardest step is just deciding who to message. Brainstorm with these, jot names down, then turn each into a link + message:</p>
+      <ul class="muted" style="line-height:1.6;margin:.2rem 0 .6rem">
+        <li>Who do you watch games / fights with?</li>
+        <li>Who's in your fantasy league or group chat?</li>
+        <li>Who already bets or plays DFS?</li>
+        <li>Family / coworkers who follow sports?</li>
+      </ul>
+      <div class="flex">
+        <input id="prName" placeholder="Name">
+        <input id="prNote" placeholder="note (optional)">
+        <label>Best app<select id="prBook">${bopts}</select></label>
+        <button class="btn" onclick="addProspect()">Add to list</button>
+      </div>
+      <table style="margin-top:.6rem">
+        ${prospects.length?prospects.map(p=>`
+          <tr data-pid="${p.id}">
+            <td><b>${p.name}</b>${p.note?` <small class=muted>— ${p.note}</small>`:''}</td>
+            <td><select id="pbk-${p.id}">${refBooks.map(b=>`<option value="${b.id}" ${p.book_id===b.id?'selected':''}>${b.name}</option>`).join('')}</select></td>
+            <td style="white-space:nowrap">
+              ${p.status==='sent'?'<span class="pill">sent ✓</span>':p.status==='skip'?'<span class="muted">skipped</span>':`<button class="btn sm" onclick="makeFromProspect(${p.id},'${escJs(p.name)}')">make link + message</button> <button class="btn sm ghost" onclick="skipProspect(${p.id})">skip</button>`}
+              <button class="btn sm danger" onclick="delProspect(${p.id})">×</button></td>
+          </tr>
+          <tr><td colspan="3"><div id="pout-${p.id}"></div></td></tr>`).join(''):'<tr><td class=muted>No one on your list yet — add a name above.</td></tr>'}
+      </table>
+    </div>
+
+    <div class="card"><h3>📨 Refer someone (quick)</h3>
+      <p class="muted">Already know who + which app? Make a link instantly.</p>
+      <div class="flex"><label>Book<select id="pBook">${bopts}</select></label>
+        <label>Person<input id="pName" placeholder="Jake"></label>
+        <button class="btn" onclick="makeRefer()">Create link</button></div>
+      <div id="pNew" style="margin-top:.6rem"></div>
+    </div>
+
+    <div class="card"><h3>📊 Pipeline</h3>
+      <table><tr><th>Person</th><th>Book</th><th>Their link</th><th>Clicks</th><th>Stage</th><th>Earned</th><th></th></tr>
+      ${people.map(p=>`<tr>
+        <td>${p.person}</td><td>${p.book_name}</td>
+        <td><code>${origin()}/go/${p.slug}</code> <button class="btn sm ghost" onclick="copy('${origin()}/go/${p.slug}')">copy</button> <button class="btn sm ghost" onclick="showQR('${origin()}/go/${p.slug}')">QR</button></td>
+        <td style="text-align:center">${p.clicks||0}</td>
+        <td><select onchange="setStage(${p.link_id},this.value)">
+          ${['','signup','deposit','wager','bonus_posted','paid'].map(s=>`<option value="${s}" ${p.stage===s?'selected':''}>${s||'— not yet —'}</option>`).join('')}
+        </select></td>
+        <td>$${(p.earned||0).toFixed(0)}</td>
+        <td><button class="btn sm danger" onclick="delPerson(${p.link_id})">×</button></td></tr>`).join('')||'<tr><td class=muted colspan=7>No links yet — make one from your list above.</td></tr>'}
+      </table></div>`;
+}
+async function makeRefer(){
+  const book_id=$('#pBook').value, person=$('#pName').value.trim();
+  if(!person) return toast('name required');
+  const r=await api('/api/admin/refer',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({book_id,person})});
+  if(r.slug){ $('#pNew').innerHTML=`Send this to ${person}: <code>${origin()}/go/${r.slug}</code> <button class="btn sm" onclick="copy('${origin()}/go/${r.slug}')">copy</button>`; $('#pName').value=''; renderPeople(); }
+}
+async function setStage(linkId,stage){
+  let amount=0;
+  if(stage==='bonus_posted'||stage==='paid'){ amount=+(prompt('Amount $ for this '+stage+'?','0')||0); }
+  await api('/api/admin/people/'+linkId+'/stage',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({stage,amount})});
+  toast('Updated'); renderPeople();
+}
+async function delPerson(linkId){ await api('/api/admin/links/'+linkId,{method:'DELETE'}); renderPeople(); }
+function escJs(s){ return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
+async function addProspect(){
+  const name=$('#prName').value.trim(); if(!name) return toast('name');
+  await api('/api/admin/prospects',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({name,note:$('#prNote').value.trim()||null,book_id:$('#prBook').value})});
+  renderPeople();
+}
+async function makeFromProspect(id,name){
+  const bookId=document.getElementById('pbk-'+id).value;
+  const r=await api('/api/admin/refer',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({book_id:bookId,person:name})});
+  if(!r.slug) return;
+  await api('/api/admin/prospects/'+id,{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify({status:'sent'})});
+  const url=origin()+'/go/'+r.slug;
+  document.getElementById('pout-'+id).innerHTML=`<div style="border:1px solid var(--line);border-radius:.5rem;padding:.5rem;margin:.3rem 0">
+    <b>✅ ${name}'s link:</b> <code>${url}</code> <button class="btn sm" onclick="copy('${url}')">copy link</button> <button class="btn sm ghost" onclick="showQR('${url}')">QR</button>
+    <textarea id="pmsg-${id}" style="min-height:72px;margin-top:.4rem">${messageFor(bookId,name,url)}</textarea>
+    <button class="btn sm" onclick="copy($('#pmsg-${id}').value)">copy message</button> <span class="muted">→ now in your Pipeline below</span></div>`;
+  const cell=document.querySelector(`tr[data-pid="${id}"] td:last-child`);
+  if(cell) cell.innerHTML=`<span class="pill">sent ✓</span> <button class="btn sm danger" onclick="delProspect(${id})">×</button>`;
+}
+async function skipProspect(id){ await api('/api/admin/prospects/'+id,{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify({status:'skip'})}); renderPeople(); }
+async function delProspect(id){ await api('/api/admin/prospects/'+id,{method:'DELETE'}); renderPeople(); }
+
+// ---- CONVERSIONS ----
+async function renderConv(){
+  const {conversions} = await api('/api/admin/conversions');
+  const bopts = DATA.books.map(b=>`<option value="${b.id}">${b.name}</option>`).join('');
+  $('#conv').innerHTML = `
+    <div class="card"><h3>Log a referral / bonus</h3>
+      <div class="row2">
+        <label>Book<select id="cvBook">${bopts}</select></label>
+        <label>Stage<select id="cvStage">${['signup','deposit','wager','bonus_posted','paid'].map(s=>`<option>${s}</option>`).join('')}</select></label>
+        <label>Amount $<input id="cvAmt" type="number" step="0.01" value="0"></label>
+        <label>Who (optional)<input id="cvWho" placeholder="John from work"></label>
+        <label>Channel<input id="cvChan" placeholder="tiktok"></label>
+        <label>Date<input id="cvDate" type="date" value="${new Date().toISOString().slice(0,10)}"></label>
+      </div>
+      <button class="btn" style="margin-top:.5rem" onclick="addConv()">Add</button>
+    </div>
+    <div class="card"><h3>Ledger</h3>
+      <table><tr><th>Date</th><th>Book</th><th>Stage</th><th>$</th><th>Who</th><th>Src</th><th></th></tr>
+      ${conversions.map(c=>`<tr><td>${c.occurred_on}</td><td>${c.book_name}</td><td>${c.stage}</td><td>$${(c.amount||0).toFixed(0)}</td><td>${c.person_label||''}</td><td><span class="pill">${c.source}</span></td><td><button class="btn sm danger" onclick="delConv(${c.id})">×</button></td></tr>`).join('')||'<tr><td class=muted colspan=7>Nothing logged yet</td></tr>'}
+      </table></div>`;
+}
+async function addConv(){
+  const body={book_id:$('#cvBook').value,stage:$('#cvStage').value,amount:+$('#cvAmt').value,
+    person_label:$('#cvWho').value,channel:$('#cvChan').value,occurred_on:$('#cvDate').value,source:'manual'};
+  await api('/api/admin/conversions',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
+  renderConv(); toast('Logged');
+}
+async function delConv(id){ await api('/api/admin/conversions/'+id,{method:'DELETE'}); renderConv(); }
+
+// boot
+// ---- PROMOS (deposit-match offer log) ----
+async function renderPromos(){
+  const d=await api('/api/admin/promos'); const promos=d.promos||[];
+  const bn=id=>{const b=DATA.books.find(x=>x.id===id);return b?b.name:(id||'—');};
+  $('#promos').innerHTML=`
+    <div class="card" style="border-color:#2563eb">💸 <b>Deposit-match promos.</b> <span class="muted">Get a 50–100% deposit-match notification (rebet etc.)? Log it here so you can track the terms and jump on it before it expires.</span></div>
+    <div class="card"><h3>➕ Log a promo</h3>
+      <div class="row2">
+        <label>Platform<select id="prmBook">${DATA.books.map(b=>`<option value="${b.id}">${b.name}</option>`).join('')}</select></label>
+        <label>Deposit match %<input id="prmPct" type="number" placeholder="50"></label>
+      </div>
+      <div class="row2">
+        <label>Up to how much ($)?<input id="prmMax" type="number" placeholder="100"></label>
+        <label>For how long?<input id="prmDur" placeholder="e.g. 48 hours · ends Sun"></label>
+      </div>
+      <div class="row2">
+        <label>Must be a parlay?<select id="prmParlay" onchange="prmToggleLegs()"><option value="0">No</option><option value="1">Yes</option></select></label>
+        <label id="prmLegsWrap" style="display:none">How many legs (min)?<input id="prmLegs" type="number" placeholder="3"></label>
+      </div>
+      <label>Restricted to a specific market / game / match?<input id="prmRes" placeholder="e.g. NBA moneylines only — or leave blank if any"></label>
+      <label>Notes (optional)<input id="prmNotes" placeholder="anything else from the offer"></label>
+      <div style="margin-top:.6rem"><button class="btn" onclick="addPromo()">Add promo</button></div>
+    </div>
+    <div class="card"><h3>Logged promos (${promos.length})</h3>
+      ${promos.length?`<table><tr><th>Platform</th><th>Match</th><th>Terms</th><th></th></tr>
+      ${promos.map(p=>`<tr style="${p.active?'':'opacity:.5'}">
+        <td><b>${esc(bn(p.book_id))}</b></td>
+        <td style="white-space:nowrap">${p.match_pct!=null?p.match_pct+'%':'—'}${p.max_amount!=null?'<br>up to $'+p.max_amount:''}</td>
+        <td style="font-size:.85rem">${p.duration?'⏱ '+esc(p.duration)+'<br>':''}${p.must_parlay?'🎟 parlay'+(p.parlay_legs?' ('+p.parlay_legs+'+ legs)':' required'):'no parlay req'}${p.restriction?'<br>🎯 '+esc(p.restriction):''}${p.notes?'<br><span class="muted">'+esc(p.notes)+'</span>':''}</td>
+        <td style="white-space:nowrap"><button class="btn sm ghost" onclick="togglePromo(${p.id},${p.active?0:1})">${p.active?'archive':'restore'}</button> <button class="btn sm ghost" onclick="delPromo(${p.id})">✕</button></td>
+      </tr>`).join('')}</table>`:'<p class="muted">None logged yet. Add one above when you get a deposit-match notification.</p>'}
+    </div>`;
+}
+function prmToggleLegs(){ $('#prmLegsWrap').style.display = $('#prmParlay').value==='1'?'block':'none'; }
+async function addPromo(){
+  const numOr=id=>$('#'+id).value!==''?+$('#'+id).value:null;
+  const body={book_id:$('#prmBook').value, match_pct:numOr('prmPct'), max_amount:numOr('prmMax'),
+    duration:$('#prmDur').value.trim()||null, must_parlay:$('#prmParlay').value==='1',
+    parlay_legs:$('#prmParlay').value==='1'?numOr('prmLegs'):null,
+    restriction:$('#prmRes').value.trim()||null, notes:$('#prmNotes').value.trim()||null};
+  await api('/api/admin/promos',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
+  toast('Promo logged'); renderPromos();
+}
+async function togglePromo(id,active){ await api('/api/admin/promos/'+id,{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify({active})}); renderPromos(); }
+async function delPromo(id){ if(!confirm('Delete this promo?'))return; await api('/api/admin/promos/'+id,{method:'DELETE'}); renderPromos(); }
+
+// ---- POST PLANNER ----
+const PLATFORMS=[['x','𝕏 / Twitter'],['reddit','Reddit'],['instagram','Instagram'],['tiktok','TikTok']];
+function planLink(platform){ return origin()+'/smart?channel='+platform; }
+function composePost(platform, ev, book){
+  const offer = book ? (DATA.offers.find(o=>o.book_id===book.id)||{}) : {};
+  const theirs = (offer.referee_bonus && !/unverified|tbd|verify/i.test(offer.referee_bonus)) ? offer.referee_bonus : 'a sign-up bonus';
+  const app = book ? book.name : 'the apps I use';
+  const E = ev ? ev : '';
+  if(platform==='reddit') return {
+    title: `${E?E+' — ':''}${app} sign-up bonus (referral)`,
+    body: `Sharing my referral link for ${app} — sign up and we both get a bonus (you get ${theirs}). Full disclosure: it's a referral link. 21+ (18+ where allowed), please bet responsibly. My tracked record + offer details are on my page.` };
+  if(platform==='instagram') return { title:'',
+    body: `${E?E+' 🔥 ':''}Grab ${app} with my link — we BOTH get a bonus (you get ${theirs}) 🎁 Link in bio.\n21+ · bet responsibly\n\n#sportsbetting #dfs #picks #parlay #bonus` };
+  if(platform==='tiktok') return { title:'',
+    body: `${E?E+' ':''}sign up for ${app} w/ my link, we both get a bonus 🎯 (link in bio) 21+\n#sportsbetting #dfs #picks #fyp #parlay` };
+  // x
+  return { title:'',
+    body: `${E?E+' is here. ':''}I run picks on ${app} 🎯 Sign up with my link & we both get a bonus (you get ${theirs}). 21+, bet responsibly.` };
+}
+async function renderPlan(){
+  const [pp, ev] = await Promise.all([api('/api/admin/posts'), api('/api/admin/events')]);
+  const posts=pp.posts||[]; const events=ev.events||[];
+  PLAN_IMG='';
+  const books=DATA.books.filter(b=>b.referral_url);
+  const today=new Date(); today.setHours(0,0,0,0);
+  const badge=p=>`<span class="pill">${(PLATFORMS.find(x=>x[0]===p)||[,p])[1]}</span>`;
+  const due=posts.filter(p=>p.status!=='posted' && p.scheduled_for && new Date(p.scheduled_for+'T12:00:00')<=today);
+  $('#plan').innerHTML=`
+    <div class="card" style="border-color:#2563eb">📣 <b>Post Planner.</b> <span class="muted">Draft platform-tailored posts, queue them, and one-tap open the platform with your text pre-filled. 𝕏 &amp; Reddit pre-fill the compose box; Instagram/TikTok copy the caption + open the app (paste it — those apps don't allow pre-filled posts). Every link is tagged so you see which platform drove clicks.</span></div>
+
+    <div class="card"><h3>✍️ Compose a post</h3>
+      <div class="row2">
+        <label>Platform<select id="poPlat" onchange="planDraft()">${PLATFORMS.map(p=>`<option value="${p[0]}">${p[1]}</option>`).join('')}</select></label>
+        <label>Event (optional)<select id="poEvent" onchange="planDraft()"><option value="">— none —</option>${events.map(e=>`<option>${esc(e.name)}</option>`).join('')}</select></label>
+      </div>
+      <div class="row2">
+        <label>Featured app (optional)<select id="poBook" onchange="planDraft()"><option value="">— general —</option>${books.map(b=>`<option value="${b.id}">${b.name}</option>`).join('')}</select></label>
+        <label>Schedule for<input type="date" id="poDate"></label>
+      </div>
+      <div id="poTitleWrap" style="display:none"><label>Title (Reddit)<input id="poTitle"></label></div>
+      <label>Post text <span class="muted" style="text-transform:none">(edit freely)</span><textarea id="poBody" style="min-height:90px"></textarea></label>
+      <div class="flex" style="margin:.3rem 0">
+        <button class="btn sm ghost" onclick="planDraft()">↻ Regenerate</button>
+        <button class="btn sm" onclick="pickImage((full,rel)=>{PLAN_IMG=rel; $('#poImg').innerHTML='<img src=\\''+full+'\\' style=\\'max-height:90px;border-radius:.5rem;border:1px solid var(--line)\\'>'})">📱 Attach screenshot</button>
+        <span id="poImg"></span>
+      </div>
+      <p class="muted" style="font-size:.78rem;margin:.1rem 0 .5rem">Link auto-included &amp; tagged: <code id="poLink"></code>. Attached images are for 𝕏/Reddit you'll add by hand (web compose can't auto-attach) and for saving to your phone for IG/TikTok.</p>
+      <button class="btn" onclick="savePost()">Add to queue</button>
+    </div>
+
+    <div class="card"><h3>🗓️ Queue${due.length?` <span class="pill">${due.length} due</span>`:''}</h3>
+      ${posts.length?posts.map(p=>{
+        const overdue=p.status!=='posted'&&p.scheduled_for&&new Date(p.scheduled_for+'T12:00:00')<=today;
+        return `<div style="border-top:1px solid var(--line);padding:.7rem 0">
+        <div class="flex">${badge(p.platform)}<span class="muted" style="font-size:.82rem">${p.scheduled_for?(overdue?'⏰ due ':'')+p.scheduled_for:'unscheduled'}</span>${p.status==='posted'?'<span class="pill" style="color:#22c55e">posted</span>':''}</div>
+        ${p.title?`<div style="font-weight:600;margin-top:.3rem">${esc(p.title)}</div>`:''}
+        <div style="white-space:pre-wrap;margin-top:.2rem;font-size:.92rem">${esc(p.body||'')}</div>
+        ${p.link?`<div class="muted" style="font-size:.8rem;margin-top:.2rem">🔗 ${esc(p.link)}</div>`:''}
+        ${p.image_url?`<div style="margin-top:.4rem"><img src="${esc(p.image_url)}" style="max-height:90px;border-radius:.5rem;border:1px solid var(--line)"> <a class="lnk" href="${esc(p.image_url)}" target="_blank" download>save image</a></div>`:''}
+        <div class="flex" style="margin-top:.45rem">
+          <button class="btn sm" onclick="openPost(${esc(JSON.stringify(p))})">↗ Open ${(PLATFORMS.find(x=>x[0]===p.platform)||[,p.platform])[1]}</button>
+          <button class="btn sm ghost" onclick="copyPost(${esc(JSON.stringify(p))})">copy text</button>
+          ${p.status==='posted'?`<button class="btn sm ghost" onclick="setPostStatus(${p.id},'scheduled')">unmark</button>`:`<button class="btn sm ghost" onclick="setPostStatus(${p.id},'posted')">✓ posted</button>`}
+          <button class="btn sm ghost" onclick="delPost(${p.id})">✕</button>
+        </div></div>`}).join(''):'<p class="muted">No posts queued. Compose one above.</p>'}
+    </div>`;
+  planDraft();
+}
+function planDraft(){
+  const plat=$('#poPlat').value, evName=$('#poEvent').value, bid=$('#poBook').value;
+  const book=bid?DATA.books.find(b=>b.id===bid):null;
+  const d=composePost(plat, evName, book);
+  $('#poBody').value=d.body;
+  $('#poTitleWrap').style.display = plat==='reddit'?'block':'none';
+  if(plat==='reddit') $('#poTitle').value=d.title;
+  $('#poLink').textContent=planLink(plat);
+}
+async function savePost(){
+  const plat=$('#poPlat').value;
+  const body={platform:plat, body:$('#poBody').value.trim(), title:plat==='reddit'?($('#poTitle').value||'').trim():null,
+    link:planLink(plat), image_url:PLAN_IMG?origin()+PLAN_IMG:null, scheduled_for:$('#poDate').value||null, channel:plat, status:'scheduled'};
+  if(!body.body) return toast('write some text first');
+  await api('/api/admin/posts',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
+  toast('Queued'); renderPlan();
+}
+function openPost(p){
+  const link=p.link||'';
+  if(p.platform==='x') window.open('https://twitter.com/intent/tweet?text='+encodeURIComponent(p.body||'')+(link?'&url='+encodeURIComponent(link):''),'_blank');
+  else if(p.platform==='reddit') window.open('https://www.reddit.com/submit?title='+encodeURIComponent(p.title||'')+'&text='+encodeURIComponent((p.body||'')+(link?'\n\n'+link:'')),'_blank');
+  else { copy((p.body||'')+(link?'\n'+link:'')); toast('Caption copied — paste it in the app'); window.open(p.platform==='tiktok'?'https://www.tiktok.com/upload':'https://www.instagram.com','_blank'); }
+}
+function copyPost(p){ copy((p.title?p.title+'\n\n':'')+(p.body||'')+(p.link?'\n'+p.link:'')); toast('Copied'); }
+async function setPostStatus(id,status){ await api('/api/admin/posts/'+id,{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify({status})}); renderPlan(); }
+async function delPost(id){ if(!confirm('Delete this queued post?'))return; await api('/api/admin/posts/'+id,{method:'DELETE'}); renderPlan(); }
+
+// ---- PICKS (transparent track record) ----
+const PICK_SPORTS=['MMA','NBA','NFL','MLB','NHL','Soccer','Tennis','NCAAF','NCAAB','Other'];
+async function renderPicks(){
+  const [d,pf]=await Promise.all([api('/api/admin/picks'),api('/api/admin/proofs')]);
+  const r=d.record||{}; const picks=d.picks||[]; const proofs=pf.proofs||[];
+  PICKS_DATA=picks;
+  const inbox=proofs.filter(x=>x.kind==='inbox'); const stats=proofs.filter(x=>x.kind==='stat'); const wins=proofs.filter(x=>x.kind==='win');
+  const cashWagered=picks.reduce((s,p)=>s+(+p.wager||0),0);
+  const cashWon=picks.filter(p=>p.status==='win').reduce((s,p)=>s+(+p.profit_cash||0),0);
+  const cashLost=picks.filter(p=>p.status==='loss').reduce((s,p)=>s+(+p.wager||0),0);
+  const cashNet=cashWon-cashLost;
+  const uCls=(r.units||0)>0?'pos':((r.units||0)<0?'neg':'');
+  const grade=(p)=>p.status==='pending'?`
+      <button class="btn sm" style="background:#16a34a" onclick="gradePick(${p.id},'win')">Win</button>
+      <button class="btn sm" style="background:#dc2626" onclick="gradePick(${p.id},'loss')">Loss</button>
+      <button class="btn sm ghost" onclick="gradePick(${p.id},'push')">Push</button>`
+    :`<span class="muted" style="font-size:.85rem">${p.status.toUpperCase()}${p.profit!=null?` (${p.profit>0?'+':''}${p.profit}u)`:''}</span> <button class="btn sm ghost" onclick="gradePick(${p.id},'pending')">undo</button>`;
+  $('#picks').innerHTML=`
+    <style>.pos{color:#22c55e}.neg{color:#ef4444}</style>
+    <div class="card"><h3>🖼️ Track-record images <span class="pill" style="color:#22c55e">drag-to-sort · v2</span></h3>
+      <p class="muted">Upload a batch into <b>Unsorted</b>, then drag each picture onto the section it belongs to. Both sections show on <a class="lnk" href="/record" target="_blank">/record</a> — no labels needed. On a phone, use the 📊 / 🔥 buttons on each image instead of dragging.</p>
+      <div class="sortwrap">
+        <div class="sortcol">
+          <div class="sorthead">📥 Unsorted <button class="btn sm" onclick="pickProofFiles()">＋ Upload</button></div>
+          <div class="pgal drop" id="colInbox" data-kind="inbox">${proofTiles(inbox,'inbox')}</div>
+        </div>
+        <div class="sortcol">
+          <div class="sorthead">📊 Profile stats <span class="muted">· your books</span></div>
+          <div class="pgal drop" id="colStat" data-kind="stat">${proofTiles(stats,'stat')}</div>
+        </div>
+        <div class="sortcol">
+          <div class="sorthead">🔥 Recent wins</div>
+          <div class="pgal drop" id="colWin" data-kind="win">${proofTiles(wins,'win')}</div>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="border-color:#2563eb">
+      📊 <b>Your public track record</b> — <span class="muted">live at</span> <a class="lnk" href="/record" target="_blank">/record</a>.
+      Picks are logged with a timestamp; losses show too. That transparency is the whole point — it's what builds trust (and an audience you can refer + sell to later).
+    </div>
+
+    <div class="card" style="border-color:#1DA1F2"><h3>📣 Share &amp; promote — get the link out</h3>
+      <p class="muted">Post to your socials in one tap. Choose what to share, tweak the text, then tap a platform: <b>𝕏 &amp; Reddit open pre-filled</b> (just hit post); <b>Instagram/TikTok copy the caption + open the app</b> to paste. Your smart link is auto-added &amp; tagged per platform, so the Overview's "What's working" shows which one drove clicks.</p>
+      <label>What to share
+        <select id="shareWhat" onchange="shareFill()">
+          <option value="general">📣 My picks page (general promo)</option>
+          <option value="record">📊 My verified track record</option>
+          ${picks.length?`<optgroup label="A specific pick">${picks.map(p=>`<option value="pick:${p.id}">${esc(p.selection)}${p.odds!=null?` ${p.odds>0?'+':''}${p.odds}`:''}</option>`).join('')}</optgroup>`:''}
+        </select>
+      </label>
+      <label style="margin-top:.5rem">Post text <span class="muted" style="text-transform:none">(edit freely)</span><textarea id="shareBody2" style="min-height:120px"></textarea></label>
+      <div class="flex" style="margin-top:.5rem">
+        <button class="btn" onclick="shareSection('x')">𝕏 Post to X</button>
+        <button class="btn ghost" onclick="shareSection('reddit')">Reddit</button>
+        <button class="btn ghost" onclick="shareSection('instagram')">📋 Instagram</button>
+        <button class="btn ghost" onclick="shareSection('tiktok')">📋 TikTok</button>
+        <button class="btn ghost" onclick="shareSection('copy')">Copy text + link</button>
+      </div>
+    </div>
+
+    <details class="card" style="border-color:#7c3aed">
+      <summary style="cursor:pointer;font-size:1.05rem"><b>📖 How to start selling picks — the complete guide</b> <span class="muted">(read this first)</span></summary>
+      <div style="line-height:1.6;margin-top:.6rem">
+
+      <p class="muted">The honest truth up front: most pick-sellers make money from <i>selling picks</i>, not from betting. The ones who last do it the opposite way — they prove they win first, build trust, and the money follows. That's the path this tool is built for. Here's how to do it right.</p>
+
+      <h3>1. The #1 rule: radical transparency</h3>
+      <ul class="muted">
+        <li><b>Log every pick BEFORE the event.</b> The timestamp is your credibility. A record built after the fact is worthless and everyone knows it.</li>
+        <li><b>Show your losses.</b> Never delete a losing pick. A 100% win rate screams scam; a real <i>55–58%</i> with losses visible is what earns trust and repeat buyers.</li>
+        <li><b>Post screenshots</b> of real slips and your cross-platform stats (the 📸 sections below). Proof beats promises every time.</li>
+      </ul>
+
+      <h3>2. Before you charge a single dollar</h3>
+      <ol class="muted">
+        <li><b>Build a public record first — for free.</b> Aim for at least <b>1–3 months</b> or <b>100+ graded picks</b> before any paywall. Nobody pays a stranger with no history.</li>
+        <li><b>Be consistent.</b> Post in the same sports/markets so your edge is legible. "MMA underdogs" is a brand; "everything" is noise.</li>
+        <li><b>Track ROI, not just win rate.</b> Hitting 60% at heavy favorites can still lose money. Your <b>units</b> and <b>ROI</b> (shown up top) are the real scoreboard.</li>
+      </ol>
+
+      <h3>3. Bankroll &amp; units (the discipline that separates pros)</h3>
+      <ul class="muted">
+        <li><b>1 unit = 1% of your bankroll.</b> Talk in units, not dollars — it's how serious bettors communicate and it protects you from tilt.</li>
+        <li><b>Most plays 1–2u; rarely more than 3–5u.</b> If everything is a "5u LOCK 🔒🔒🔒," you're marketing, not betting.</li>
+        <li><b>Flat-ish staking</b> beats chasing. Never double up to recover a loss.</li>
+        <li>Your edge-finder already sizes with Kelly — the bridge converts those to units automatically.</li>
+      </ul>
+
+      <h3>4. What makes a pick worth following</h3>
+      <ul class="muted">
+        <li><b>State the price &amp; book:</b> "Lewis ML +313 (DK)." Odds matter — a pick at +150 is not the same bet at -110.</li>
+        <li><b>Give a real reason</b> in the analysis field. "+EV vs my model (33.8% vs 24% implied)" or a concrete angle. No "trust me."</li>
+        <li><b>Beat the closing line (CLV).</b> If your number is better than where the line closes, you're genuinely sharp over time — even on losses. This is the #1 long-term skill.</li>
+        <li><b>Post early</b> enough that followers can actually get the same price.</li>
+      </ul>
+
+      <h3>5. Grow the audience (this is 80% of the game)</h3>
+      <ul class="muted">
+        <li><b>Free picks are your marketing.</b> Give value publicly; sell the volume/extras later.</li>
+        <li><b>Pick one home base:</b> X (betting Twitter) or a free Discord. Post daily, engage, share your <a class="lnk" href="/record" target="_blank">/record</a> link.</li>
+        <li><b>Ride high-intent windows</b> — use your <button class="btn sm ghost" onclick="gotoTab('grow')">Intent calendar</button> (UFC cards, NFL Sundays). That's when eyeballs and betting are highest.</li>
+        <li><b>Same audience = your referral money.</b> Followers who trust your picks sign up through your book links. Picks and referrals feed each other.</li>
+      </ul>
+
+      <h3>6. When &amp; how to monetize</h3>
+      <ul class="muted">
+        <li><b>Start free, then add a premium tier</b> once you have a record + a few hundred engaged followers. (The "premium" visibility toggle on each pick is already built — premium picks lock on the public page until a paywall is added.)</li>
+        <li><b>Tiers that work:</b> free daily pick (the hook) → paid monthly for all plays + bigger units + write-ups.</li>
+        <li><b>Delivery:</b> private Discord channel, Telegram, or email blast. We can wire Stripe + auto-delivery when you're ready.</li>
+      </ul>
+
+      <h3>7. Pricing reality</h3>
+      <ul class="muted">
+        <li>Typical: <b>$10–$50/month</b> to start; established cappers charge $50–$150+. Don't overprice with no record.</li>
+        <li><b>Monthly subscription</b> beats per-pick — predictable income, less pressure on any single play.</li>
+        <li>Consider a cheap/free trial week so people see the value before paying.</li>
+      </ul>
+
+      <h3>8. Traps &amp; rules — don't skip this</h3>
+      <ul class="muted">
+        <li><b>Never guarantee wins</b> or sell "locks." It's false, it burns trust, and it can be legally dicey.</li>
+        <li><b>Disclaimers</b> (already on your /record): entertainment/not financial advice, 21+, gamble responsibly. Keep them.</li>
+        <li><b>Disclose referral links</b> (FTC). It's the law and it converts <i>better</i>, not worse.</li>
+        <li><b>Platform rules:</b> many subreddits ban touts/referral spam; payment processors are picky about gambling. Read the rules before posting.</li>
+        <li><b>Avoid the scam playbook</b> (deleting losers, fake records, multiple accounts tipping both sides). It works short-term and destroys you long-term.</li>
+      </ul>
+
+      <h3>9. Use what you've already got</h3>
+      <ul class="muted">
+        <li><b>Edge-finder → record:</b> run your model, log the bet, run the bridge — it lands on /record with the model edge attached. That data-driven angle is your differentiator vs vibes-based cappers.</li>
+        <li><b>Screenshots:</b> add bet-slip wins per pick and your cross-platform stats below — stack the proof.</li>
+        <li><b>One link to share:</b> your <a class="lnk" href="/me" target="_blank">/me</a> bio page now links to /record — put it in every social bio.</li>
+      </ul>
+
+      <h3>10. Realistic expectations</h3>
+      <ul class="muted">
+        <li>This is a <b>months-to-years</b> audience game, not a quick flip. Most who start make ~$0 for a while — the ones who stay transparent and consistent are the ones who break through.</li>
+        <li>A real, provable edge of even <b>2–5% ROI</b> over a big sample is genuinely impressive. Anyone promising more is selling something.</li>
+        <li><b>Your unfair advantage:</b> a verifiable record + a real model + a built-in referral funnel. Few cappers have all three. Be patient and let the record speak.</li>
+      </ul>
+
+      </div>
+    </details>
+    <div class="grid kpis">
+      <div class="kpi"><b class="${uCls}">${(r.units>0?'+':'')+(r.units||0)}u</b><small>units</small></div>
+      <div class="kpi"><b class="${(r.roi||0)>0?'pos':((r.roi||0)<0?'neg':'')}">${(r.roi>0?'+':'')+(r.roi||0)}%</b><small>ROI</small></div>
+      <div class="kpi"><b>${r.wins||0}-${r.losses||0}${r.pushes?'-'+r.pushes:''}</b><small>W-L</small></div>
+      <div class="kpi"><b>${r.pending||0}</b><small>pending</small></div>
+    </div>
+    ${cashWagered>0?`<div class="card" style="padding:.7rem 1rem"><b>💵 Money tracked</b> <span class="muted">(private)</span> — $${cashWagered.toFixed(2)} wagered · <span class="pos">+$${cashWon.toFixed(2)}</span> won · <span class="${cashNet>=0?'pos':'neg'}">net ${cashNet>=0?'+':'-'}$${Math.abs(cashNet).toFixed(2)}</span></div>`:''}
+
+    <div class="card"><h3>➕ Log a pick</h3>
+      <p class="muted">Add it <b>before</b> the event — that's what makes the record real.</p>
+      <div class="row2">
+        <label>Sport<select id="pkSport">${PICK_SPORTS.map(s=>`<option>${s}</option>`).join('')}</select></label>
+        <label>Event / matchup<input id="pkEvent" placeholder="Lewis vs Hokit"></label>
+      </div>
+      <div class="row2">
+        <label>Selection (what you're betting)<input id="pkSel" placeholder="Derrick Lewis ML"></label>
+        <label>Odds (American)<input id="pkOdds" type="number" placeholder="-110"></label>
+      </div>
+      <div class="row2">
+        <label>Stake (units)<input id="pkStake" type="number" step="0.1" value="1"></label>
+        <label>Visibility<select id="pkVis"><option value="free">Free (public)</option><option value="premium">Premium (locked)</option></select></label>
+      </div>
+      <div class="muted" style="font-size:.8rem;margin:.3rem 0">💵 Money tracking (private — your records only):</div>
+      <div class="row2">
+        <label>Wager ($)<input id="pkWager" type="number" step="0.01" placeholder="20" oninput="pkCalc()"></label>
+        <label>Profit / +money ($)<input id="pkProfit" type="number" step="0.01" placeholder="auto from odds"></label>
+      </div>
+      <div class="row2">
+        <label>Total payout ($)<input id="pkPayout" type="number" step="0.01" placeholder="auto"></label>
+        <label style="display:flex;align-items:flex-end"><button class="btn sm ghost" type="button" onclick="pkCalc()" style="width:100%">↻ Calc $ from odds + wager</button></label>
+      </div>
+      <label>Analysis / reasoning (shown publicly)<textarea id="pkAn" placeholder="Why this is +EV…"></textarea></label>
+      <label>📷 Win / bet-slip screenshot (optional)</label>
+      <div class="flex">
+        <button class="btn sm" onclick="pickImage(u=>{$('#pkProof').value=u; pkProofPreview()})">📱 Upload from phone</button>
+        <input id="pkProof" placeholder="…or paste an image URL" oninput="pkProofPreview()" style="flex:1">
+      </div>
+      <div id="pkProofPrev" style="margin-top:.4rem"></div>
+      <div style="margin-top:.6rem"><button class="btn" onclick="addPick()">Add pick</button></div>
+    </div>
+
+    <div class="card"><h3>All picks (${picks.length})</h3>
+      ${picks.length?`<table><tr><th>When</th><th>Pick</th><th>Odds</th><th>Src</th><th style="min-width:170px">Result</th><th></th></tr>
+      ${picks.map(p=>`<tr>
+        <td class="muted" style="font-size:.8rem;white-space:nowrap">${(p.posted_at||'').slice(0,16).replace('T',' ')}</td>
+        <td><b>${esc(p.selection||'')}</b>${p.odds!=null?` <span class="muted">${p.odds>0?'+':''}${p.odds}</span>`:''}<br><span class="muted" style="font-size:.8rem">${p.sport?esc(p.sport)+' · ':''}${esc(p.event||'')}${p.visibility==='premium'?' · 🔒':''}</span>
+          ${(p.wager!=null||p.payout!=null)?`<br><span class="muted" style="font-size:.8rem">💵 ${p.wager!=null?'$'+p.wager+' wager':''}${p.profit_cash!=null?' · +$'+p.profit_cash:''}${p.payout!=null?' · payout $'+p.payout:''}</span>`:''}
+          ${p.proof_url?`<br><a href="${esc(p.proof_url)}" target="_blank"><img src="${esc(p.proof_url)}" style="max-height:46px;border-radius:.4rem;margin-top:.3rem;border:1px solid var(--line)"></a>`:''}</td>
+        <td>${p.stake||1}u</td>
+        <td><span class="pill">${p.source==='edge-finder'?'model':'manual'}</span></td>
+        <td>${grade(p)}</td>
+        <td><button class="btn sm" title="Share to socials" onclick="sharePick(${p.id})">📣</button> <button class="btn sm ghost" title="Attach/replace screenshot" onclick="setProof(${p.id})">📷</button> <button class="btn sm ghost" onclick="delPick(${p.id})">✕</button></td>
+      </tr>`).join('')}</table>`:'<p class="muted">No picks yet. Log your first one above (or push them from the edge-finder bridge).</p>'}
+    </div>
+
+    `;
+  wireProofZone('colInbox'); wireProofZone('colStat'); wireProofZone('colWin');
+  shareFill();
+}
+function proofTiles(items,bucket){
+  if(!items||!items.length) return `<div class="ph">${bucket==='inbox'?'⬆ Uploaded images land here':'Drag images here'}</div>`;
+  return items.map(x=>{
+    const moves = bucket==='inbox'
+      ? `<button class="btn sm" title="To Profile stats" onclick="setProofKind(${x.id},'stat')">📊</button><button class="btn sm" title="To Recent wins" onclick="setProofKind(${x.id},'win')">🔥</button>`
+      : bucket==='stat'
+      ? `<button class="btn sm" title="To Recent wins" onclick="setProofKind(${x.id},'win')">🔥</button><button class="btn sm ghost" title="Back to Unsorted" onclick="setProofKind(${x.id},'inbox')">↩</button>`
+      : `<button class="btn sm" title="To Profile stats" onclick="setProofKind(${x.id},'stat')">📊</button><button class="btn sm ghost" title="Back to Unsorted" onclick="setProofKind(${x.id},'inbox')">↩</button>`;
+    return `<div class="it" draggable="true" ondragstart="proofDragStart(event,${x.id})">
+      <a href="${esc(x.image_url)}" target="_blank"><img src="${esc(x.image_url)}" loading="lazy"></a>
+      <div class="cap">${moves}<button class="btn sm ghost" title="Edit (crop / rotate / replace)" onclick="openCrop(${x.id}, this.closest('.it').querySelector('img').src)">✏️</button><button class="btn sm danger" title="Delete" onclick="delProof(${x.id})">✕</button></div>
+    </div>`;
+  }).join('');
+}
+
+// ---- inline image cropper (same-origin /img/* → canvas → re-upload → repoint proof) ----
+let CROP=null;
+function ensureCropModal(){
+  if(document.getElementById('cropModal')) return;
+  const m=document.createElement('div'); m.id='cropModal'; m.className='cropModal';
+  m.innerHTML=`<div class="cropBackdrop" onclick="closeCrop()"></div>
+    <div class="cropPanel">
+      <div class="cropHead"><span>✏️ Edit image</span><button class="btn sm ghost" onclick="closeCrop()">✕</button></div>
+      <div class="cropTools">
+        <button class="btn sm ghost" onclick="rotateCrop(-1)" title="Rotate left">⟲ Left</button>
+        <button class="btn sm ghost" onclick="rotateCrop(1)" title="Rotate right">⟳ Right</button>
+        <button class="btn sm ghost" onclick="replaceImage()" title="Swap in a different photo">🔁 Replace</button>
+        <span class="muted" style="font-size:.78rem;margin-left:auto">drag the box / corners to crop</span>
+      </div>
+      <div class="cropStage" id="cropStage">
+        <img id="cropImg" alt="">
+        <div class="cropBox" id="cropBox">
+          <span class="ch tl" data-h="tl"></span><span class="ch tr" data-h="tr"></span>
+          <span class="ch bl" data-h="bl"></span><span class="ch br" data-h="br"></span>
+        </div>
+      </div>
+      <div class="cropFoot"><button class="btn ghost" onclick="resetCrop()">Reset crop</button><button class="btn ghost" onclick="closeCrop()">Cancel</button><button class="btn" id="cropSave" onclick="saveCrop()">Save</button></div>
+    </div>`;
+  document.body.appendChild(m);
+  wireCropInteractions();
+}
+function initCropBox(){
+  const img=document.getElementById('cropImg'); if(!CROP) return;
+  const w=img.clientWidth, h=img.clientHeight;
+  const bw=Math.round(w*0.8), bh=Math.round(h*0.8);
+  CROP.box={x:Math.round((w-bw)/2), y:Math.round((h-bh)/2), w:bw, h:bh};
+  CROP.dispW=w; CROP.dispH=h; CROP.natW=img.naturalWidth; CROP.natH=img.naturalHeight;
+  drawCropBox();
+}
+function drawCropBox(){ const b=CROP&&CROP.box; if(!b) return; const el=document.getElementById('cropBox');
+  el.style.left=b.x+'px'; el.style.top=b.y+'px'; el.style.width=b.w+'px'; el.style.height=b.h+'px'; }
+function openCrop(id,url){
+  ensureCropModal();
+  CROP={id,url,box:null};
+  const img=document.getElementById('cropImg');
+  img.onload=initCropBox;
+  img.src=url;                                   // same-origin /img/N → canvas stays untainted
+  if(img.complete && img.naturalWidth) initCropBox();
+  document.getElementById('cropModal').classList.add('show');
+}
+function resetCrop(){ initCropBox(); }
+// rotate the working image 90° (dir: -1 left / +1 right) by re-rendering through a canvas
+function rotateCrop(dir){
+  if(!CROP) return;
+  const img=document.getElementById('cropImg');
+  const w=img.naturalWidth, h=img.naturalHeight; if(!w||!h) return;
+  const cv=document.createElement('canvas'); cv.width=h; cv.height=w;
+  const ctx=cv.getContext('2d');
+  ctx.translate(cv.width/2, cv.height/2);
+  ctx.rotate((dir>0?90:-90)*Math.PI/180);
+  ctx.drawImage(img, -w/2, -h/2);
+  img.onload=initCropBox;
+  img.src=cv.toDataURL('image/jpeg',0.92);   // becomes the new working image (untainted data URL)
+}
+// swap this tile's photo for a different file, keeping its bucket
+function replaceImage(){
+  if(!CROP) return; const id=CROP.id;
+  const inp=document.createElement('input'); inp.type='file'; inp.accept='image/*';
+  inp.onchange=async()=>{ const f=inp.files&&inp.files[0]; if(!f) return;
+    toast('Uploading…');
+    try{
+      const url=await uploadOneFile(f);
+      if(!url){ toast('Upload failed'); return; }
+      const r=await api('/api/admin/proofs/'+id,{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify({image_url:origin()+url})});
+      toast((r&&r.error)?r.error:'Image replaced');
+    }catch(e){ toast('Could not replace'); }
+    closeCrop(); renderPicks();
+  };
+  inp.click();
+}
+function closeCrop(){ const m=document.getElementById('cropModal'); if(m) m.classList.remove('show'); CROP=null; }
+function wireCropInteractions(){
+  const box=document.getElementById('cropBox');
+  let mode=null, sx=0, sy=0, start=null;
+  const clamp=(v,mn,mx)=>Math.max(mn,Math.min(mx,v));
+  function down(e){
+    if(!CROP||!CROP.box) return;
+    mode=(e.target&&e.target.dataset&&e.target.dataset.h)||'move';
+    sx=e.clientX; sy=e.clientY; start=Object.assign({},CROP.box);
+    e.preventDefault(); e.stopPropagation();
+    try{ box.setPointerCapture(e.pointerId); }catch(_){}
+    document.addEventListener('pointermove',move); document.addEventListener('pointerup',up);
+  }
+  function move(e){
+    if(!mode||!CROP) return;
+    const dx=e.clientX-sx, dy=e.clientY-sy, W=CROP.dispW, H=CROP.dispH, MIN=24;
+    let {x,y,w,h}=start;
+    if(mode==='move'){ x=clamp(start.x+dx,0,W-w); y=clamp(start.y+dy,0,H-h); }
+    else {
+      if(mode.indexOf('l')>=0){ const nx=clamp(start.x+dx,0,start.x+start.w-MIN); w=start.w+(start.x-nx); x=nx; }
+      if(mode.indexOf('r')>=0){ w=clamp(start.w+dx,MIN,W-start.x); }
+      if(mode.indexOf('t')>=0){ const ny=clamp(start.y+dy,0,start.y+start.h-MIN); h=start.h+(start.y-ny); y=ny; }
+      if(mode.indexOf('b')>=0){ h=clamp(start.h+dy,MIN,H-start.y); }
+    }
+    CROP.box={x:Math.round(x),y:Math.round(y),w:Math.round(w),h:Math.round(h)}; drawCropBox();
+  }
+  function up(){ mode=null; document.removeEventListener('pointermove',move); document.removeEventListener('pointerup',up); }
+  box.addEventListener('pointerdown',down);
+}
+async function saveCrop(){
+  if(!CROP||!CROP.box) return;
+  const img=document.getElementById('cropImg');
+  const fx=CROP.natW/CROP.dispW, fy=CROP.natH/CROP.dispH, b=CROP.box;
+  const cw=Math.max(1,Math.round(b.w*fx)), ch=Math.max(1,Math.round(b.h*fy));
+  const cv=document.createElement('canvas'); cv.width=cw; cv.height=ch;
+  cv.getContext('2d').drawImage(img, Math.round(b.x*fx),Math.round(b.y*fy),cw,ch, 0,0,cw,ch);
+  let q=0.85, out=cv.toDataURL('image/jpeg',q);
+  while(out.length>900000 && q>0.4){ q-=0.15; out=cv.toDataURL('image/jpeg',q); }
+  const btn=document.getElementById('cropSave'); btn.disabled=true; btn.textContent='Saving…';
+  const id=CROP.id;
+  try{
+    const up=await api('/api/admin/images',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({data:out})});
+    if(!up||!up.url){ toast('Crop upload failed'); }
+    else{
+      const r=await api('/api/admin/proofs/'+id,{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify({image_url:origin()+up.url})});
+      toast((r&&r.error)?r.error:'Cropped & saved');
+    }
+  }catch(e){ toast('Could not save crop'); }
+  btn.disabled=false; btn.textContent='Save crop';
+  closeCrop(); renderPicks();
+}
+async function delProof(id){ if(!confirm('Remove this screenshot?'))return;
+  await api('/api/admin/proofs/'+id,{method:'DELETE'}); renderPicks(); }
+async function addPick(){
+  const numOr=(id)=>$('#'+id).value!==''?+$('#'+id).value:null;
+  const body={sport:$('#pkSport').value,event:$('#pkEvent').value.trim(),selection:$('#pkSel').value.trim(),
+    odds:$('#pkOdds').value?+$('#pkOdds').value:null,stake:$('#pkStake').value?+$('#pkStake').value:1,
+    wager:numOr('pkWager'),profit_cash:numOr('pkProfit'),payout:numOr('pkPayout'),
+    visibility:$('#pkVis').value,analysis:$('#pkAn').value.trim()||null,proof_url:$('#pkProof').value.trim()||null,status:'pending'};
+  if(!body.event||!body.selection) return toast('event + selection required');
+  const r=await api('/api/admin/picks',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
+  if(r&&r.error) return toast(r.error);
+  toast('Pick logged'); renderPicks();
+}
+function pkCalc(){
+  const odds=parseFloat($('#pkOdds').value), wager=parseFloat($('#pkWager').value);
+  if(!odds||!wager) return;
+  const profit = odds>0 ? wager*odds/100 : wager*100/Math.abs(odds);
+  $('#pkProfit').value = Math.round(profit*100)/100;
+  $('#pkPayout').value = Math.round((wager+profit)*100)/100;
+}
+async function gradePick(id,status){
+  await api('/api/admin/picks/'+id,{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify({status})});
+  toast('Updated'); renderPicks();
+}
+function pkProofPreview(){ const u=$('#pkProof').value.trim(); $('#pkProofPrev').innerHTML=u?`<img src="${u}" style="max-height:90px;border-radius:.5rem;border:1px solid var(--line)">`:''; }
+async function setProof(id){
+  pickImage(async (u)=>{
+    await api('/api/admin/picks/'+id,{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify({proof_url:u})});
+    toast('Screenshot attached'); renderPicks();
+  });
+}
+async function delPick(id){ if(!confirm('Delete this pick? (Deleting losers defeats the purpose — only do this for mistakes.)'))return;
+  await api('/api/admin/picks/'+id,{method:'DELETE'}); renderPicks(); }
+
+// ---- one-tap share to socials (composer lives in the Picks tab "Share & promote" card) ----
+function composePickPost(p){
+  const odds = p.odds!=null ? ` ${p.odds>0?'+':''}${p.odds}` : '';
+  const tag  = p.sport ? p.sport : 'New';
+  const why  = p.analysis ? `\n${p.analysis}` : '';
+  return `🎯 ${tag} pick: ${p.selection}${odds}${p.event?` — ${p.event}`:''}${why}\n\nTailing? Every play's logged with a verified record. Sign up on the apps I use with my link & we both get a bonus 👇\n21+ · #ad`;
+}
+function shareLinkFor(platform){
+  const what = ($('#shareWhat')||{}).value || 'general';
+  if(what==='record') return origin()+'/record';
+  return origin()+'/smart?channel='+(platform||'social');
+}
+function shareDefaultText(){
+  const what = ($('#shareWhat')||{}).value || 'general';
+  if(what==='record') return `📊 My verified sports-betting track record — every pick logged before the event, wins AND losses shown, nothing deleted. Take a look 👇\n21+`;
+  if(what.indexOf('pick:')===0){
+    const p=(PICKS_DATA||[]).find(x=>x.id===+what.split(':')[1]);
+    if(p) return composePickPost(p);
+  }
+  return `🎯 I post sports picks with a verified, timestamped record — wins AND losses, nothing hidden. Sign up on the apps I use with my link & we both grab a bonus 👇\n21+ · #ad`;
+}
+function shareFill(){ const el=$('#shareBody2'); if(el) el.value=shareDefaultText(); }
+function shareSection(platform){
+  const ta=$('#shareBody2'); if(!ta) return;
+  const body=ta.value.trim();
+  if(platform==='copy'){ copy(body+String.fromCharCode(10)+shareLinkFor('social')); return; }
+  const what=($('#shareWhat')||{}).value||'general';
+  let title='My sports picks';
+  if(what.indexOf('pick:')===0){ const p=(PICKS_DATA||[]).find(x=>x.id===+what.split(':')[1]); if(p) title=`${p.selection}${p.odds!=null?` ${p.odds>0?'+':''}${p.odds}`:''} — my pick`; }
+  else if(what==='record') title='My verified sports-betting track record';
+  openPost({platform, body, link:shareLinkFor(platform), title});  // X/Reddit pre-fill; IG/TikTok copy + open app
+}
+// per-pick 📣 button → load that pick into the Share card and scroll to it
+function sharePick(id){
+  const sel=$('#shareWhat'); if(sel){ sel.value='pick:'+id; shareFill(); }
+  const ta=$('#shareBody2'); if(ta) ta.scrollIntoView({behavior:'smooth', block:'center'});
+  toast('Loaded into Share — pick a platform');
+}
+
+loadBooks().then(()=>renderOverview());
+</script>
+</body>
+</html>

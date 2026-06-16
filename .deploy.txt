@@ -1,0 +1,25 @@
+
+ ⛅️ wrangler 4.99.0
+───────────────────
+🌀 Building list of assets...
+✨ Read 2 files from the assets directory C:\Users\socia\betlink\public
+🌀 Starting asset upload...
+🌀 Found 2 new or modified static assets to upload. Proceeding with upload...
++ /index.html
++ /admin.html
+Uploaded 1 of 2 assets
+Uploaded 2 of 2 assets
+✨ Success! Uploaded 2 files (0.96 sec)
+
+Total Upload: 101.97 KiB / gzip: 25.00 KiB
+Worker Startup Time: 10 ms
+Your Worker has access to the following bindings:
+Binding                          Resource                  
+env.DB (betlink)                 D1 Database               
+env.ASSETS                       Assets                    
+env.DEFAULT_STATE ("OH")         Environment Variable      
+
+Uploaded betlink (4.43 sec)
+Deployed betlink triggers (0.59 sec)
+  https://betlink.alecnpierce.workers.dev
+Current Version ID: fd77ce3d-6368-4add-b7e1-a66be3da1922

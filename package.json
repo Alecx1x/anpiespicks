@@ -1,0 +1,43 @@
+{
+  "name": "betlink",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:init": "wrangler d1 execute betlink --local --file=./schema.sql",
+    "db:seed": "wrangler d1 execute betlink --local --file=./seed.sql",
+    "db:populate": "node scripts/populate.mjs && wrangler d1 execute betlink --local --file=./populate.sql",
+    "db:events": "wrangler d1 execute betlink --local --file=./events-seed.sql",
+    "db:events:remote": "wrangler d1 execute betlink --remote --file=./events-seed.sql",
+    "db:bonushist": "wrangler d1 execute betlink --local --file=./migrate-bonus-history.sql",
+    "db:bonushist:remote": "wrangler d1 execute betlink --remote --file=./migrate-bonus-history.sql",
+    "db:picks": "wrangler d1 execute betlink --local --file=./migrate-picks.sql",
+    "db:picks:remote": "wrangler d1 execute betlink --remote --file=./migrate-picks.sql",
+    "db:picksproof": "wrangler d1 execute betlink --local --file=./migrate-picks-proof.sql",
+    "db:picksproof:remote": "wrangler d1 execute betlink --remote --file=./migrate-picks-proof.sql",
+    "db:proofs": "wrangler d1 execute betlink --local --file=./migrate-proofs.sql",
+    "db:proofs:remote": "wrangler d1 execute betlink --remote --file=./migrate-proofs.sql",
+    "db:proofkind": "wrangler d1 execute betlink --local --file=./migrate-proof-kind.sql",
+    "db:proofkind:remote": "wrangler d1 execute betlink --remote --file=./migrate-proof-kind.sql",
+    "db:planner": "wrangler d1 execute betlink --local --file=./migrate-planner.sql",
+    "db:planner:remote": "wrangler d1 execute betlink --remote --file=./migrate-planner.sql",
+    "db:pickscash": "wrangler d1 execute betlink --local --file=./migrate-picks-cash.sql",
+    "db:pickscash:remote": "wrangler d1 execute betlink --remote --file=./migrate-picks-cash.sql",
+    "db:promos": "wrangler d1 execute betlink --local --file=./migrate-promos.sql",
+    "db:promos:remote": "wrangler d1 execute betlink --remote --file=./migrate-promos.sql",
+    "db:referrals": "wrangler d1 execute betlink --local --file=./my-referrals.sql",
+    "db:referrals:remote": "wrangler d1 execute betlink --remote --file=./my-referrals.sql",
+    "db:populate:remote": "node scripts/populate.mjs && wrangler d1 execute betlink --remote --file=./populate.sql",
+    "db:reset": "wrangler d1 execute betlink --local --command \"SELECT 'use db:init then db:seed'\"",
+    "db:init:remote": "wrangler d1 execute betlink --remote --file=./schema.sql",
+    "db:seed:remote": "wrangler d1 execute betlink --remote --file=./seed.sql"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250601.0",
+    "wrangler": "^4.20.0"
+  },
+  "dependencies": {
+    "hono": "^4.6.0"
+  }
+}

@@ -1,0 +1,18 @@
+
+ ⛅️ wrangler 4.99.0
+───────────────────
+✅ Successfully created DB 'betlink' in region WNAM
+Created your new D1 database.
+
+To access your new D1 Database in your Worker, add the following snippet to your configuration file:
+{
+  "d1_databases": [
+    {
+      "binding": "betlink",
+      "database_name": "betlink",
+      "database_id": "40e1ae0c-6378-445c-8613-f2123edd381c"
+    }
+  ]
+}
+? Would you like Wrangler to add it on your behalf?
+🤖 Using fallback value in non-interactive context: no

@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AnpiesPicks</title>
+<meta name="description" content="Sign up with my link and we both get a bonus. Tap to grab the best app for your state — plus my verified track record.">
+<meta property="og:title" content="AnpiesPicks 🎯">
+<meta property="og:description" content="Sign up with my link and we both get a bonus. Tap to grab the best app for your state.">
+<meta property="og:site_name" content="AnpiesPicks">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://join.anpieo7.workers.dev/me">
+<meta property="og:image" content="https://join.anpieo7.workers.dev/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://join.anpieo7.workers.dev/og.png">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Hanken+Grotesk:wght@400;500;600;700;800&family=Spline+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0E1411; --board:#121A16; --slip:#19231D; --slip-2:#202D26;
+    --line:#2A382F; --chalk:#ECF1ED; --mut:#8C988F;
+    --turf:#33B96A; --turf-deep:#1E7C46; --teal:#2DD1C4; --stamp:#E4572E;
+    --r:14px;
+    --display:"Anton",Impact,sans-serif;
+    --body:"Hanken Grotesk",system-ui,sans-serif;
+    --mono:"Spline Sans Mono",ui-monospace,monospace;
+    --good:var(--turf);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:var(--body);font-size:17px;background:var(--ink);color:var(--chalk);display:flex;justify-content:center;-webkit-font-smoothing:antialiased;overflow-x:hidden;min-height:100vh}
+
+  /* ---- shared ambient swirl field ---- */
+  .ambient{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+  .ambient .swirls{position:absolute;inset:-8% -6%;background:url('/swirl.svg') center/cover no-repeat;opacity:.5;mix-blend-mode:screen;animation:drift 80s ease-in-out infinite alternate}
+  .ambient .glow{position:absolute;border-radius:50%;filter:blur(70px);opacity:.55}
+  .g1{top:-4%;left:-12%;width:60vw;height:60vw;background:radial-gradient(circle,rgba(51,185,106,.5),transparent 68%)}
+  .g2{top:40%;right:-18%;width:64vw;height:64vw;background:radial-gradient(circle,rgba(45,209,196,.42),transparent 70%)}
+  .g3{top:78%;left:-16%;width:60vw;height:60vw;background:radial-gradient(circle,rgba(124,110,246,.4),transparent 70%)}
+  @keyframes drift{from{transform:translate3d(0,0,0) scale(1.02)}to{transform:translate3d(0,-2.5%,0) scale(1.08) rotate(1.2deg)}}
+  body::before{content:"";position:fixed;inset:0 0 auto 0;height:60vh;z-index:0;background:radial-gradient(120% 80% at 50% -20%,rgba(51,185,106,.10),transparent 60%);pointer-events:none}
+
+  .wrap{position:relative;z-index:1;width:100%;max-width:460px;padding:2.4rem 1.1rem 3rem;text-align:center}
+  .avatar{width:88px;height:88px;border-radius:50%;background:linear-gradient(135deg,var(--turf),var(--teal));display:grid;place-items:center;margin:0 auto;
+    font-family:var(--display);font-size:2.1rem;color:#08130C;box-shadow:0 12px 40px -10px rgba(45,209,196,.6)}
+  h1{margin:.9rem 0 .25rem;font-family:var(--display);font-weight:400;text-transform:uppercase;letter-spacing:.01em;font-size:clamp(1.9rem,8vw,2.6rem);line-height:.96}
+  .bio{color:var(--mut);margin:.3rem 0 1.1rem;font-size:1rem}
+  .socials{display:flex;gap:.6rem;justify-content:center;margin-bottom:1.4rem;flex-wrap:wrap}
+  .socials a{color:var(--mut);text-decoration:none;font-family:var(--mono);font-size:.78rem;border:1px solid var(--line);padding:.34rem .8rem;border-radius:2rem}
+  .socials a:hover{color:var(--teal);border-color:var(--teal)}
+
+  .cta{display:block;background:var(--turf);color:#08130C;text-decoration:none;font-weight:800;font-size:1.1rem;padding:.95rem;border-radius:12px;margin:.5rem 0 1rem;
+    box-shadow:0 10px 30px -10px rgba(51,185,106,.7);transition:transform .12s ease}
+  .cta:hover{transform:translateY(-2px)}
+  a.lnk{color:var(--teal);text-decoration:none;border-bottom:1px dashed transparent}
+  a.lnk:hover{border-color:var(--teal)}
+
+  .statebar{text-align:left;margin:1rem 0 .4rem;display:flex;align-items:center;gap:.5rem;font-family:var(--mono);font-size:.74rem;letter-spacing:.08em;text-transform:uppercase;color:var(--mut)}
+  select{background:var(--slip);color:var(--chalk);border:1px solid var(--line);border-radius:8px;padding:.4rem .65rem;font-family:var(--mono);font-size:.85rem;cursor:pointer}
+
+  .offer{position:relative;background:var(--slip);border:1px solid var(--line);border-radius:var(--r);padding:.85rem 1rem .85rem 1.2rem;margin:.6rem 0;text-align:left;display:flex;justify-content:space-between;align-items:center;gap:.6rem;overflow:hidden;
+    box-shadow:0 18px 44px -32px rgba(0,0,0,.9),0 0 28px -18px rgba(51,185,106,.22)}
+  .offer::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--turf);opacity:.6}
+  .offer .nm{font-weight:800;font-size:1.02rem}
+  .offer .nm .star{color:var(--stamp)}
+  .offer small{color:var(--mut);font-family:var(--mono);font-size:.74rem}
+  .offer a{background:var(--slip-2);color:var(--chalk);text-decoration:none;padding:.5rem .85rem;border-radius:8px;white-space:nowrap;border:1px solid var(--turf-deep);font-weight:700;transition:background .12s ease,color .12s ease}
+  .offer a:hover{background:var(--turf);color:#08130C}
+
+  .disc{color:var(--mut);font-family:var(--mono);font-size:.72rem;margin-top:2.2rem;line-height:1.7;text-align:left;border-top:1px solid var(--line);padding-top:1.1rem}
+  .disc strong{color:#b9c3bb}
+
+  a:focus-visible,.cta:focus-visible,.offer a:focus-visible{outline:3px solid var(--turf);outline-offset:3px;border-radius:6px}
+  @media (prefers-reduced-motion:reduce){.ambient .swirls{animation:none}.cta{transition:none}}
+</style>
+</head>
+<body>
+<div class="ambient" aria-hidden="true">
+  <div class="glow g1"></div><div class="glow g2"></div><div class="glow g3"></div>
+  <div class="swirls"></div>
+</div>
+<div class="wrap">
+  <div class="avatar" id="avatar">🎯</div>
+  <h1 id="name">AnpiesPicks</h1>
+  <p class="bio" id="bio">Sign up through my links and we both score a bonus 🤝</p>
+  <div class="socials" id="socials"></div>
+
+  <a class="cta" id="cta" href="/smart?channel=bio">🎁 Get my best offer →</a>
+  <a class="lnk" href="/record" style="display:block;margin:-.4rem 0 1rem;font-size:.95rem">📊 See my verified track record →</a>
+
+  <div class="statebar"><span>Your state</span><select id="state"></select></div>
+  <div id="offers"></div>
+
+  <div class="disc">
+    <strong>Disclosure:</strong> these are my referral links — I may earn a bonus when you sign up. Costs you nothing extra, and you get a bonus too.
+    21+ (18+ where permitted). Offers vary by state &amp; change often. Please play responsibly — <a class="lnk" href="https://www.ncpgambling.org/">1-800-GAMBLER</a>.
+  </div>
+</div>
+
+<script>
+const STATES="AL AK AZ AR CA CO CT DE DC FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY".split(" ");
+const sel=document.getElementById('state');
+STATES.forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;sel.appendChild(o);});
+
+async function loadProfile(){
+  const p=await fetch('/api/profile').then(r=>r.json()).catch(()=>({}));
+  if(p.display_name){ document.getElementById('name').textContent=p.display_name; document.getElementById('avatar').textContent=p.display_name.trim()[0]?.toUpperCase()||'🎯'; document.title=p.display_name+" — picks & bonuses"; }
+  if(p.bio) document.getElementById('bio').textContent=p.bio;
+  const soc=[]; if(p.twitter)soc.push(['X','https://x.com/'+p.twitter.replace('@','')]); if(p.instagram)soc.push(['Instagram','https://instagram.com/'+p.instagram.replace('@','')]); if(p.tiktok)soc.push(['TikTok','https://tiktok.com/@'+p.tiktok.replace('@','')]);
+  document.getElementById('socials').innerHTML=soc.map(s=>`<a href="${s[1]}" target="_blank" rel="noopener">${s[0]}</a>`).join('');
+}
+async function loadOffers(state){
+  const d=await fetch('/api/offers?state='+state).then(r=>r.json());
+  sel.value=d.state;
+  document.getElementById('cta').href='/smart?channel=bio&state='+d.state;
+  const avail=d.offers.filter(o=>o.status==='legal'&&o.accepting_signups).slice(0,5);
+  document.getElementById('offers').innerHTML=avail.length?avail.map(o=>`
+    <div class="offer"><div><div class="nm">${o.favorite?'<span class="star">★</span> ':''}${o.name}</div><small>${o.referee_bonus||'Sign-up bonus'}</small></div>
+    <a href="/smart?book=${o.id}&channel=bio&state=${d.state}">Claim</a></div>`).join(''):'<p style="color:var(--mut);font-family:var(--mono);font-size:.85rem">Nothing available in your state yet — check back soon.</p>';
+}
+sel.addEventListener('change',e=>loadOffers(e.target.value));
+loadProfile();
+fetch('/api/geo').then(r=>r.json()).then(g=>loadOffers(g.state)).catch(()=>loadOffers('OH'));
+</script>
+</body>
+</html>

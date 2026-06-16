@@ -1,0 +1,30 @@
+{
+  // AnpiesPicks — personal sportsbook/DFS affiliate hub
+  "name": "join",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-06-01",
+  "compatibility_flags": ["nodejs_compat"],
+
+  // Static dashboard + landing page live in ./public and are served via the ASSETS binding.
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS"
+  },
+
+  // D1 (SQLite). For local dev the database_id can stay as-is.
+  // Before deploying: run `npx wrangler d1 create betlink` and paste the real id here.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "betlink",
+      "database_id": "40e1ae0c-6378-445c-8613-f2123edd381c"
+    }
+  ],
+
+  "observability": { "enabled": true },
+
+  "vars": {
+    // Fallback US state used when geo can't be detected (local dev). Override with ?state=XX.
+    "DEFAULT_STATE": "OH"
+  }
+}

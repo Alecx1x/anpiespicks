@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Bonus">
+<meta name="theme-color" content="#0b1020">
+<title>Quick Bonus Update</title>
+<link rel="icon" type="image/svg+xml" href="/favicon-admin.svg">
+<style>
+  :root{--bg:#0b1020;--card:#151b30;--line:#243049;--txt:#e5e7eb;--mut:#94a3b8;--good:#22c55e;--bad:#ef4444}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--txt);
+    display:flex;justify-content:center;padding:env(safe-area-inset-top) 0 0}
+  .wrap{width:100%;max-width:480px;padding:1.4rem 1.1rem 3rem}
+  h1{font-size:1.3rem;margin:.2rem 0 .2rem}
+  .sub{color:var(--mut);font-size:.9rem;margin:0 0 1.2rem}
+  label{display:block;font-size:.82rem;color:var(--mut);margin:1rem 0 .3rem;text-transform:uppercase;letter-spacing:.04em}
+  select,input{width:100%;padding:.85rem;font-size:1.1rem;border-radius:.7rem;border:1px solid var(--line);background:#0e1426;color:var(--txt)}
+  .cur{background:var(--card);border:1px solid var(--line);border-radius:.7rem;padding:.7rem .9rem;margin-top:.4rem;font-size:.92rem}
+  .cur b{color:var(--txt)} .cur span{color:var(--mut)}
+  .hint{color:var(--mut);font-size:.78rem;margin-top:.25rem}
+  button.go{width:100%;margin-top:1.6rem;padding:1rem;font-size:1.15rem;font-weight:700;border:0;border-radius:.8rem;background:#2563eb;color:#fff}
+  button.go:active{background:#1d4ed8}
+  #msg{margin-top:1.1rem;padding:.9rem 1rem;border-radius:.7rem;display:none;font-size:.95rem;line-height:1.4}
+  #msg.ok{display:block;background:rgba(34,197,94,.13);border:1px solid var(--good);color:#bbf7d0}
+  #msg.err{display:block;background:rgba(239,68,68,.13);border:1px solid var(--bad);color:#fecaca}
+  .login{display:none;text-align:center;margin-top:3rem}
+  .login a{color:#60a5fa;font-size:1.1rem}
+  .foot{margin-top:2rem;text-align:center}.foot a{color:var(--mut);font-size:.85rem;text-decoration:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>⚡ Quick Bonus Update</h1>
+  <p class="sub">Saw a bonus change? Update it here in 5 seconds. Logs to your history automatically.</p>
+
+  <div id="form">
+    <label for="book">App</label>
+    <select id="book"></select>
+    <div class="cur" id="cur"></div>
+
+    <label for="them">What your FRIEND gets <span style="text-transform:none">(leave blank = no change)</span></label>
+    <input id="them" type="text" inputmode="text" placeholder="e.g. $50 in bonus bets" autocomplete="off">
+
+    <label for="you">What YOU get <span style="text-transform:none">(leave blank = no change)</span></label>
+    <input id="you" type="text" inputmode="text" placeholder="e.g. $50 bonus" autocomplete="off">
+
+    <button class="go" onclick="save()">Update bonus →</button>
+    <div id="msg"></div>
+  </div>
+
+  <div class="login" id="login">
+    🔒 You need to log in first.<br><br>
+    <a href="/login">Tap here to log in →</a>
+    <p class="hint">After logging in once, this page stays unlocked on this phone for 30 days.</p>
+  </div>
+
+  <div class="foot"><a href="/admin">Open full dashboard →</a></div>
+</div>
+
+<script>
+let BOOKS=[], OFFERS={};
+const $=id=>document.getElementById(id);
+
+async function init(){
+  let r;
+  try{ r=await fetch('/api/admin/books'); }catch(e){ return showErr('Network error — check your connection.'); }
+  if(r.status===401||r.status===503){ $('form').style.display='none'; $('login').style.display='block'; return; }
+  const d=await r.json();
+  BOOKS=(d.books||[]).filter(b=>b.referral_url); // only books you actually promote
+  if(!BOOKS.length) BOOKS=d.books||[];
+  OFFERS=Object.fromEntries((d.offers||[]).map(o=>[o.book_id,o]));
+  // favorites / rebet first
+  BOOKS.sort((a,b)=>(b.favorite-a.favorite)||a.name.localeCompare(b.name));
+  $('book').innerHTML=BOOKS.map(b=>`<option value="${b.id}">${b.favorite?'★ ':''}${b.name}</option>`).join('');
+  $('book').onchange=showCurrent; showCurrent();
+}
+function showCurrent(){
+  const o=OFFERS[$('book').value]||{};
+  $('cur').innerHTML=`<span>Currently →</span> friend: <b>${o.referee_bonus||'—'}</b> · you: <b>${o.referrer_bonus||'—'}</b>`;
+  $('them').value=''; $('you').value=''; $('msg').className='';
+}
+async function save(){
+  const them=$('them').value.trim(), you=$('you').value.trim();
+  if(!them && !you) return showErr('Type a new amount in at least one box.');
+  const btn=document.querySelector('.go'); btn.disabled=true; btn.textContent='Saving…';
+  try{
+    const r=await fetch('/api/admin/quick-bonus',{method:'POST',headers:{'content-type':'application/json'},
+      body:JSON.stringify({book:$('book').value, them, you})});
+    const d=await r.json().catch(()=>({}));
+    if(d.ok){
+      $('msg').className='ok';
+      $('msg').innerHTML=`✅ <b>${d.name}</b> updated.<br>Friend now: <b>${d.now.them||'—'}</b> · You now: <b>${d.now.you||'—'}</b>`;
+      // refresh local copy so the "Currently" line is right next time
+      const o=OFFERS[$('book').value]||(OFFERS[$('book').value]={});
+      if(them) o.referee_bonus=them; if(you) o.referrer_bonus=you;
+      $('them').value=''; $('you').value='';
+    } else { showErr(d.error||'Something went wrong.'); }
+  }catch(e){ showErr('Network error — try again.'); }
+  btn.disabled=false; btn.textContent='Update bonus →';
+}
+function showErr(t){ $('msg').className='err'; $('msg').textContent='⚠️ '+t; }
+init();
+</script>
+</body>
+</html>
