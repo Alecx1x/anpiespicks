@@ -260,7 +260,7 @@ Notes:
 
 Migrations present: `migrate-bonus-history`, `migrate-picks`, `migrate-picks-cash`, `migrate-picks-proof`,
 `migrate-planner`, `migrate-promos`, `migrate-proofs`, `migrate-proof-kind`, `migrate-grow`,
-`migrate-prospects`, `migrate-settings`. Seeds/data: `seed.sql`, `populate.sql`(+`populate.mjs`),
+`migrate-prospects`, `migrate-settings`, `migrate-articles` (the blog/content table — idempotent). Seeds/data: `seed.sql`, `populate.sql`(+`populate.mjs`),
 `events-seed.sql`, `affiliate-urls.sql`, `my-referrals.sql`.
 
 > **`migrate-proof-kind.sql` is NOT idempotent** — SQLite has no `ADD COLUMN IF NOT EXISTS`. Run it **once**
@@ -370,6 +370,51 @@ Shared **"sportsbook-ticket"** identity. Keep new public pages consistent (CSS t
 - **Do not log into sportsbook accounts** or do anything against a book's TOS.
 - **Verify before claiming done** — deploy, then prove it live (curl/Playwright with the auth cookie), then
   clean up any seeded test data.
+
+---
+
+## 18. Content & SEO layer (the discovery surface)
+
+A bare referral hub has no organic discovery — so there's a **server-rendered, crawlable** content layer
+that links *down* into the funnel. All of it is rendered in the Worker (NOT the JS SPAs) so Google indexes
+real HTML, via the shared `siteShell()` helper.
+
+> **Distinct neutral brand (by owner request 2026-06-22):** the guide pages deliberately do NOT look like the
+> AnpiesPicks hub — they run under their own brand **`StateLine`** (constants `BRAND` / `BRAND_TAG` near
+> `SITE_URL` in index.ts — rename in one place) with a **light "comparison-site" theme** (white/slate, Inter,
+> blue `--brand:#1D4ED8`, comparison TABLE, "★ Top pick" badge), its own favicon **`/favicon-guide.svg`**
+> (blue line-mark), neutral publication copy ("we track…", "Claim bonus →"), and an **"Advertising
+> disclosure"** footer in third-person. AnpiesPicks appears only as a small "a project by AnpiesPicks"
+> byline. Goal: read as an independent resource, not a personal referral funnel — while staying FTC-compliant
+> (the disclosure is mandatory; never remove it). The dark bet-slip identity (§14) is the HUB only (`/`,
+> `/record`, `/me`); the guide is a separate visual system living entirely inside `siteShell()`.
+
+- **`/bonuses` and `/bonuses/:state`** — the **state-by-state bonus comparison tool** (the "magnet").
+  `renderBonusesPage()` queries books legal & accepting signups in that state, ranked, and renders bet-slip
+  cards with the new-user bonus, any active deposit-match promo, and a Claim button → `/smart?book=…&channel=bonuses&state=XX`.
+  A `<select>` + a 51-link state grid navigate to other states (each its own indexable URL → ~51 pages
+  targeting "[state] sportsbook bonuses"). `/bonuses` (no param) uses the visitor's geo state; an unknown
+  state 302s to `/bonuses`. Emits `ItemList` JSON-LD. Claim/CTA links carry `rel="nofollow sponsored"`.
+- **`/blog` and `/blog/:slug`** — the content engine. Articles live in the **`articles`** table
+  (`migrate-articles.sql`; `db:articles[:remote]`). `/blog` lists published posts; `/blog/:slug` renders one
+  (only `status='published'`; drafts 404 publicly) with `BlogPosting` JSON-LD and a CTA strip to `/bonuses`
+  + the smart link. Body is authored in **lightweight markdown** (`mdToHtml()`: `##/###/####` headings,
+  `**bold**`, `*em*`, `-`/`1.` lists, `>` quotes, paragraphs — HTML-escaped first, owner-authored).
+- **`/sitemap.xml`** (`/`, `/bonuses`, `/record`, `/me`, `/blog`, all 51 `/bonuses/:state`, every published
+  `/blog/:slug`) and **`/robots.txt`** (allows all, disallows `/admin`,`/quick`,`/login`,`/api/`, points at
+  the sitemap). All three content routes set `Cache-Control: public, max-age=300` (sitemap 3600).
+- **Authoring:** admin **Content** tab (`renderContent()` in admin.html) — list + editor (title, auto-slug,
+  dek/meta-description, markdown body, tags, status, optional cover via `uploadCover()`→`/img/N`). CRUD at
+  `/api/admin/articles` (`GET` list, `GET/:id`, `POST`, `PUT/:id`, `DELETE/:id`). `published_at` is stamped
+  on first publish and preserved across edits/unpublish. `uniqueSlug()` de-dupes slugs.
+- **Internal linking:** `index.html` and `record.html` got a footer nav row linking `/bonuses` + `/blog`
+  (+ `/record`/home) so link equity flows between the SPA pages and the server-rendered ones.
+
+> Strategy context (why this exists): the owner asked how to make the site profitable beyond hand-sharing
+> links. The plan = lean on the owner's build skill (the comparison tool + Edge-finder are the unfair
+> advantage), layer slow-burn SEO content (narrow, state-specific, buyer-intent), and seed a community to
+> convert trust. SEO is a 6–12 month game; sports-betting is hyper-competitive, so target long-tail, not
+> head terms. Keep `rel="nofollow sponsored"` on all referral links.
 
 ### Tabled until the owner explicitly asks
 Embedded AI "Coach" (separate Anthropic billing), AI/OCR auto-fill of bet fields, Stripe paywall for premium

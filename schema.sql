@@ -286,3 +286,23 @@ CREATE TABLE prospects (
   status      TEXT DEFAULT 'todo',
   created_at  TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+-- ---------------------------------------------------------------------------
+-- articles: the content/blog layer — an indexable SEO surface (state-bonus
+--   guides, how-tos, event previews) that links down into the referral funnel.
+--   Public pages /blog and /blog/:slug are server-rendered for crawlers.
+-- ---------------------------------------------------------------------------
+CREATE TABLE articles (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  slug          TEXT NOT NULL UNIQUE,
+  title         TEXT NOT NULL,
+  dek           TEXT,
+  body          TEXT,
+  tags          TEXT,
+  cover_url     TEXT,
+  status        TEXT NOT NULL DEFAULT 'draft',
+  published_at  TEXT,
+  updated_at    TEXT NOT NULL DEFAULT (datetime('now')),
+  created_at    TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX idx_articles_status ON articles(status, published_at);

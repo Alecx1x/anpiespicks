@@ -82,6 +82,7 @@
     <button data-tab="plan">Plan</button>
     <button data-tab="promos">Promos</button>
     <button data-tab="picks">Picks</button>
+    <button data-tab="content">Content</button>
     <button data-tab="conv">Conversions</button>
   </nav>
   <span class="muted" style="margin-left:auto;font-size:.8rem">Lock this page with Cloudflare Access before deploying.</span>
@@ -96,6 +97,7 @@
   <section id="plan" hidden></section>
   <section id="promos" hidden></section>
   <section id="picks" hidden></section>
+  <section id="content" hidden></section>
   <section id="conv" hidden></section>
 </main>
 <div class="toast" id="toast"></div>
@@ -114,7 +116,7 @@ function offerFor(id){return DATA.offers.find(o=>o.book_id===id)||{};}
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));
   b.classList.add('active');
-  ['overview','books','legal','links','people','grow','plan','promos','picks','conv'].forEach(id=>$('#'+id).hidden=(id!==b.dataset.tab));
+  ['overview','books','legal','links','people','grow','plan','promos','picks','content','conv'].forEach(id=>$('#'+id).hidden=(id!==b.dataset.tab));
   render(b.dataset.tab);
 });
 
@@ -131,6 +133,7 @@ async function render(tab){
   if(tab==='plan') return renderPlan();
   if(tab==='promos') return renderPromos();
   if(tab==='picks') return renderPicks();
+  if(tab==='content') return renderContent();
   if(tab==='conv') return renderConv();
 }
 async function renderOverview(){
@@ -1271,6 +1274,83 @@ function sharePick(id){
   const sel=$('#shareWhat'); if(sel){ sel.value='pick:'+id; shareFill(); }
   const ta=$('#shareBody2'); if(ta) ta.scrollIntoView({behavior:'smooth', block:'center'});
   toast('Loaded into Share — pick a platform');
+}
+
+// ---- CONTENT (blog articles) ----
+let EDIT_ART = null; // null = list view; {} = new; {id,...} = editing
+async function renderContent(){
+  const sec=$('#content');
+  if(EDIT_ART===null){
+    const d=await api('/api/admin/articles'); const arts=d.articles||[];
+    const rows=arts.map(a=>`<tr>
+      <td><b>${esc(a.title)}</b>${a.dek?`<div class="muted" style="font-size:.8rem">${esc(a.dek)}</div>`:''}<div class="muted" style="font-size:.75rem">/blog/${esc(a.slug)}</div></td>
+      <td>${a.status==='published'?'<span class="ok">● published</span>':'<span class="muted">○ draft</span>'}</td>
+      <td class="muted" style="font-size:.8rem;white-space:nowrap">${a.published_at?String(a.published_at).slice(0,10):'—'}</td>
+      <td style="white-space:nowrap">
+        ${a.status==='published'?`<a class="btn sm ghost" href="/blog/${esc(a.slug)}" target="_blank">view</a> `:''}
+        <button class="btn sm" onclick="editArticle(${a.id})">edit</button>
+        <button class="btn sm danger" onclick="delArticle(${a.id},'${escJs(a.title)}')">✕</button>
+      </td></tr>`).join('');
+    sec.innerHTML=`
+      <div class="card" style="border-color:#7c3aed">📝 <b>Blog / content</b> — <span class="muted">posts go live at <a class="lnk" href="/blog" target="_blank">/blog</a>. Each one is a real, Google-indexable page that links into your bonus funnel — your slow-burn traffic engine. Write narrow, specific posts (e.g. "How the DraftKings Ohio bonus playthrough actually works").</span></div>
+      <div class="card"><div class="flex" style="justify-content:space-between"><h3 style="margin:0">Your posts</h3><button class="btn" onclick="newArticle()">＋ New post</button></div>
+        ${arts.length?`<table style="margin-top:.6rem"><tr><th>Post</th><th>Status</th><th>Published</th><th></th></tr>${rows}</table>`:'<p class="muted" style="margin-top:.6rem">No posts yet. Tap <b>＋ New post</b> to write your first — even one solid state-bonus guide gives Google something to index.</p>'}
+      </div>
+      <details class="card"><summary style="cursor:pointer"><b>💡 What to write (high-leverage ideas)</b></summary>
+        <ul class="muted" style="line-height:1.7;margin-top:.5rem">
+          <li><b>State bonus guides:</b> "Best sportsbook bonuses in Ohio right now" — link to <code>/bonuses/oh</code>. One per state you care about.</li>
+          <li><b>Playthrough explainers:</b> "What '$200 in bonus bets' really means" — the searches with buyer intent.</li>
+          <li><b>Comparisons:</b> "DraftKings vs FanDuel sign-up bonus — which is actually bigger?"</li>
+          <li><b>Launch news:</b> "[State] just went live — first apps to grab" — timely, low competition.</li>
+          <li>Always end a post linking to <code>/bonuses</code> or your smart link — the post is the magnet, the link is the exit.</li>
+        </ul></details>`;
+    return;
+  }
+  // editor view
+  const a=EDIT_ART;
+  sec.innerHTML=`
+    <div class="card">
+      <div class="flex" style="justify-content:space-between"><h3 style="margin:0">${a.id?'Edit post':'New post'}</h3>
+        <button class="btn sm ghost" onclick="EDIT_ART=null;renderContent()">← back to list</button></div>
+      <label style="margin-top:.6rem">Title<input id="ar-title" value="${esc(a.title||'')}" oninput="if(!EDIT_ART.id&&!EDIT_ART._slugTouched)$('#ar-slug').value=slugifyJs(this.value)"></label>
+      <label style="margin-top:.5rem">URL slug <span class="muted" style="text-transform:none">— /blog/<b id="slugpv">${esc(a.slug||'')}</b></span>
+        <input id="ar-slug" value="${esc(a.slug||'')}" oninput="EDIT_ART._slugTouched=true;$('#slugpv').textContent=slugifyJs(this.value)"></label>
+      <label style="margin-top:.5rem">Summary / dek <span class="muted" style="text-transform:none">(1–2 lines; also the Google description)</span><textarea id="ar-dek" style="min-height:54px">${esc(a.dek||'')}</textarea></label>
+      <label style="margin-top:.5rem">Body <span class="muted" style="text-transform:none">— Markdown: <code>## Heading</code>, <code>**bold**</code>, <code>- list</code>, <code>[text](url)</code>. Blank line = new paragraph.</span>
+        <textarea id="ar-body" style="min-height:320px;font-family:ui-monospace,monospace">${esc(a.body||'')}</textarea></label>
+      <div class="row2" style="margin-top:.5rem">
+        <label>Tags <span class="muted" style="text-transform:none">(comma-sep)</span><input id="ar-tags" value="${esc(a.tags||'')}" placeholder="ohio, draftkings, bonus"></label>
+        <label>Status<select id="ar-status"><option value="draft"${a.status!=='published'?' selected':''}>Draft (hidden)</option><option value="published"${a.status==='published'?' selected':''}>Published (live)</option></select></label>
+      </div>
+      <label style="margin-top:.5rem">Cover image <span class="muted" style="text-transform:none">(optional)</span>
+        <div class="flex"><input id="ar-cover" value="${esc(a.cover_url||'')}" placeholder="/img/123 or https://…" style="flex:1"><button class="btn sm ghost" onclick="uploadCover()">⬆ upload</button></div></label>
+      ${a.cover_url?`<img src="${esc(a.cover_url)}" style="max-height:120px;border-radius:.5rem;margin-top:.4rem">`:''}
+      <div class="flex" style="margin-top:.8rem">
+        <button class="btn" onclick="saveArticle()">💾 Save</button>
+        ${a.id&&a.status==='published'?`<a class="btn ghost" href="/blog/${esc(a.slug)}" target="_blank">view live ↗</a>`:''}
+        <span class="muted" style="font-size:.82rem">Tip: save as Draft first, preview by publishing, then unpublish if needed.</span>
+      </div>
+    </div>`;
+}
+function slugifyJs(s){ return String(s||'').toLowerCase().trim().replace(/['"]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,70); }
+function newArticle(){ EDIT_ART={status:'draft'}; renderContent(); }
+async function editArticle(id){ const d=await api('/api/admin/articles/'+id); EDIT_ART=d.article||{id}; renderContent(); }
+async function delArticle(id,title){ if(!confirm('Delete "'+title+'"? This cannot be undone.')) return; await api('/api/admin/articles/'+id,{method:'DELETE'}); EDIT_ART=null; renderContent(); toast('Deleted'); }
+async function uploadCover(){
+  const inp=document.createElement('input'); inp.type='file'; inp.accept='image/*';
+  inp.onchange=async()=>{ const f=inp.files&&inp.files[0]; if(!f) return; toast('Uploading…');
+    try{ const url=await uploadOneFile(f); if(!url){toast('Upload failed');return;} $('#ar-cover').value=url; toast('Cover set'); }
+    catch(e){ toast('Upload failed'); } };
+  inp.click();
+}
+async function saveArticle(){
+  const body={ title:$('#ar-title').value.trim(), slug:$('#ar-slug').value.trim(), dek:$('#ar-dek').value.trim(),
+    body:$('#ar-body').value, tags:$('#ar-tags').value.trim(), cover_url:$('#ar-cover').value.trim()||null, status:$('#ar-status').value };
+  if(!body.title){ toast('Title required'); return; }
+  const id=EDIT_ART&&EDIT_ART.id;
+  const r=await api('/api/admin/articles'+(id?'/'+id:''),{method:id?'PUT':'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
+  if(r&&r.error){ toast(r.error); return; }
+  toast(body.status==='published'?'Published ✓':'Saved'); EDIT_ART=null; renderContent();
 }
 
 loadBooks().then(()=>renderOverview());

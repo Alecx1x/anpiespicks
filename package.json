@@ -28,6 +28,8 @@
     "db:promos:remote": "wrangler d1 execute betlink --remote --file=./migrate-promos.sql",
     "db:referrals": "wrangler d1 execute betlink --local --file=./my-referrals.sql",
     "db:referrals:remote": "wrangler d1 execute betlink --remote --file=./my-referrals.sql",
+    "db:articles": "wrangler d1 execute betlink --local --file=./migrate-articles.sql",
+    "db:articles:remote": "wrangler d1 execute betlink --remote --file=./migrate-articles.sql",
     "db:populate:remote": "node scripts/populate.mjs && wrangler d1 execute betlink --remote --file=./populate.sql",
     "db:reset": "wrangler d1 execute betlink --local --command \"SELECT 'use db:init then db:seed'\"",
     "db:init:remote": "wrangler d1 execute betlink --remote --file=./schema.sql",

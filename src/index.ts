@@ -921,6 +921,360 @@ app.get('/api/admin/stats', async (c) => {
 });
 
 // ---------------------------------------------------------------------------
+// CONTENT & SEO LAYER — server-rendered, crawlable pages that link into the
+//   funnel: a state-by-state bonus comparison tool (/bonuses/:state) and a
+//   blog (/blog, /blog/:slug). Plus sitemap.xml + robots.txt. All rendered in
+//   the Worker (not the JS SPAs) so Google indexes real HTML.
+// ---------------------------------------------------------------------------
+const STATE_NAMES: Record<string, string> = {
+  AL: 'Alabama', AK: 'Alaska', AZ: 'Arizona', AR: 'Arkansas', CA: 'California', CO: 'Colorado',
+  CT: 'Connecticut', DE: 'Delaware', DC: 'Washington D.C.', FL: 'Florida', GA: 'Georgia', HI: 'Hawaii',
+  ID: 'Idaho', IL: 'Illinois', IN: 'Indiana', IA: 'Iowa', KS: 'Kansas', KY: 'Kentucky', LA: 'Louisiana',
+  ME: 'Maine', MD: 'Maryland', MA: 'Massachusetts', MI: 'Michigan', MN: 'Minnesota', MS: 'Mississippi',
+  MO: 'Missouri', MT: 'Montana', NE: 'Nebraska', NV: 'Nevada', NH: 'New Hampshire', NJ: 'New Jersey',
+  NM: 'New Mexico', NY: 'New York', NC: 'North Carolina', ND: 'North Dakota', OH: 'Ohio', OK: 'Oklahoma',
+  OR: 'Oregon', PA: 'Pennsylvania', RI: 'Rhode Island', SC: 'South Carolina', SD: 'South Dakota',
+  TN: 'Tennessee', TX: 'Texas', UT: 'Utah', VT: 'Vermont', VA: 'Virginia', WA: 'Washington',
+  WV: 'West Virginia', WI: 'Wisconsin', WY: 'Wyoming',
+};
+const ALL_STATES = Object.keys(STATE_NAMES);
+const CAT_LABEL: Record<string, string> = {
+  dfs_pickem: "DFS pick'em", social_sportsbook: 'Social sportsbook', sweeps_casino: 'Sweeps casino',
+  prediction_market: 'Prediction market', sportsbook: 'Sportsbook', fantasy: 'Daily fantasy',
+};
+const SITE_URL = 'https://join.anpieo7.workers.dev';
+// The content/guide pages run under their own neutral brand so they read as an
+// independent comparison resource, not a personal referral funnel. Rename here.
+const BRAND = 'StateLine';
+const BRAND_TAG = 'Sportsbook & pick’em bonuses, state by state';
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+function monthYear(): string { const d = new Date(); return `${MONTHS[d.getMonth()]} ${d.getFullYear()}`; }
+
+// Escape text destined for HTML body content.
+function escHtml(s: any): string {
+  return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+function slugify(s: string): string {
+  return String(s || '').toLowerCase().trim().replace(/['"]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 70);
+}
+
+// Tiny, safe markdown → HTML for article bodies (owner-authored). Escapes first.
+function mdToHtml(src: string): string {
+  const inline = (t: string) => escHtml(t)
+    .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_m, txt, url) => `<a href="${escAttr(url)}">${txt}</a>`)
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/(^|[^*])\*([^*]+)\*/g, '$1<em>$2</em>');
+  const blocks = String(src || '').replace(/\r\n/g, '\n').split(/\n{2,}/);
+  const out: string[] = [];
+  for (const raw of blocks) {
+    const b = raw.trim();
+    if (!b) continue;
+    const lines = b.split('\n');
+    if (/^#{2,4}\s/.test(b)) { const h = b.match(/^#+/)![0].length; out.push(`<h${h}>${inline(b.replace(/^#+\s*/, ''))}</h${h}>`); continue; }
+    if (lines.every((l) => /^[-*]\s+/.test(l))) { out.push('<ul>' + lines.map((l) => `<li>${inline(l.replace(/^[-*]\s+/, ''))}</li>`).join('') + '</ul>'); continue; }
+    if (lines.every((l) => /^\d+[.)]\s+/.test(l))) { out.push('<ol>' + lines.map((l) => `<li>${inline(l.replace(/^\d+[.)]\s+/, ''))}</li>`).join('') + '</ol>'); continue; }
+    if (lines.every((l) => /^>\s?/.test(l))) { out.push(`<blockquote>${inline(b.replace(/^>\s?/gm, ''))}</blockquote>`); continue; }
+    out.push(`<p>${inline(b).replace(/\n/g, '<br>')}</p>`);
+  }
+  return out.join('\n');
+}
+
+// Shared shell for the server-rendered guide pages. Intentionally a LIGHT,
+// neutral "comparison-site" identity (its own brand, NOT the dark bet-slip hub),
+// so /bonuses + /blog read as an independent resource. AnpiesPicks is downplayed
+// to a footer byline + the required affiliate disclosure.
+function siteShell(o: { title: string; desc: string; canonical: string; body: string; active?: string; jsonLd?: string; ogImage?: string }): string {
+  const nav = [['/bonuses', 'Bonuses'], ['/blog', 'Guides']]
+    .map(([href, label]) => `<a href="${href}"${o.active === href ? ' class="on"' : ''}>${label}</a>`).join('');
+  return `<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${escAttr(o.title)}</title>
+<meta name="description" content="${escAttr(o.desc)}">
+<link rel="canonical" href="${escAttr(o.canonical)}">
+<meta property="og:title" content="${escAttr(o.title)}">
+<meta property="og:description" content="${escAttr(o.desc)}">
+<meta property="og:type" content="website"><meta property="og:site_name" content="${escAttr(BRAND)}">
+<meta property="og:url" content="${escAttr(o.canonical)}">
+<meta property="og:image" content="${escAttr(o.ogImage || SITE_URL + '/og.png')}">
+<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="${escAttr(o.ogImage || SITE_URL + '/og.png')}">
+<link rel="icon" type="image/svg+xml" href="/favicon-guide.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+${o.jsonLd ? `<script type="application/ld+json">${o.jsonLd}</script>` : ''}
+<style>
+:root{--bg:#F5F7FB;--bg2:#EDF1F7;--card:#FFFFFF;--bd:#E2E8F1;--bd2:#CDD7E5;--ink:#0F1B2E;--txt:#2A3647;--mut:#637085;--brand:#1D4ED8;--brand-d:#1740AE;--brandwash:#EAF0FE;--green:#0E9E6E;--star:#E8941A;--r:14px;--font:"Inter",system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;font-family:var(--font);font-size:17px;line-height:1.5;background:var(--bg);color:var(--txt);-webkit-font-smoothing:antialiased}
+a{color:var(--brand);text-decoration:none}a:hover{text-decoration:underline}
+.bar{height:4px;background:linear-gradient(90deg,var(--brand),#5B8DEF 60%,#7DD3FC)}
+.topnav{background:var(--card);border-bottom:1px solid var(--bd)}
+.topnav .in{max-width:960px;margin:0 auto;padding:.8rem 1.1rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
+.topnav .brand{display:flex;align-items:center;gap:.5rem;font-weight:800;font-size:1.18rem;letter-spacing:-.02em;color:var(--ink)}
+.topnav .brand .mk{width:26px;height:26px;border-radius:7px;background:var(--brand);display:inline-grid;place-items:center}
+.topnav .brand .mk svg{width:17px;height:17px;display:block}
+.topnav nav{margin-left:auto;display:flex;gap:.2rem;flex-wrap:wrap}
+.topnav nav a{color:var(--mut);font-weight:600;font-size:.92rem;padding:.4rem .8rem;border-radius:8px}
+.topnav nav a.on,.topnav nav a:hover{color:var(--brand);background:var(--brandwash);text-decoration:none}
+.wrap{max-width:960px;margin:0 auto;padding:1.8rem 1.1rem 3rem}
+h1{font-weight:800;letter-spacing:-.025em;font-size:clamp(1.9rem,5vw,2.7rem);line-height:1.08;margin:.3rem 0 .5rem;color:var(--ink)}
+.eyebrow{font-size:.76rem;letter-spacing:.08em;text-transform:uppercase;color:var(--brand);font-weight:700;margin:0}
+.lede{color:var(--mut);font-size:1.08rem;line-height:1.62;margin:.3rem 0 1.5rem;max-width:720px}
+.statepick{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin:.2rem 0 1.3rem;font-size:.9rem;color:var(--mut);font-weight:600}
+select{background:var(--card);color:var(--ink);border:1px solid var(--bd2);border-radius:9px;padding:.5rem .7rem;font-family:inherit;font-size:.95rem;font-weight:600;cursor:pointer}
+/* ---- comparison table ---- */
+.cmp{width:100%;border-collapse:separate;border-spacing:0;background:var(--card);border:1px solid var(--bd);border-radius:var(--r);overflow:hidden;box-shadow:0 1px 2px rgba(15,27,46,.04),0 10px 30px -22px rgba(15,27,46,.25)}
+.cmp thead th{font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);font-weight:700;text-align:left;padding:.75rem 1.1rem;background:var(--bg2);border-bottom:1px solid var(--bd)}
+.cmp td{padding:1rem 1.1rem;border-bottom:1px solid var(--bd);vertical-align:middle}
+.cmp tbody tr:last-child td{border-bottom:0}
+.cmp tr.top td{background:var(--brandwash)}
+.app{display:flex;align-items:center;gap:.7rem}
+.app .rk{flex:0 0 auto;width:26px;height:26px;border-radius:50%;background:var(--bg2);color:var(--mut);font-weight:800;font-size:.85rem;display:grid;place-items:center}
+.app .an{font-weight:700;color:var(--ink);font-size:1.05rem;line-height:1.2}
+.app .an small{display:block;font-weight:500;color:var(--mut);font-size:.76rem;margin-top:.1rem}
+.pin{display:inline-block;font-size:.68rem;font-weight:800;letter-spacing:.03em;text-transform:uppercase;color:var(--brand-d);background:#fff;border:1px solid var(--brand);border-radius:6px;padding:.1rem .4rem;margin-bottom:.3rem}
+.bn{font-weight:800;color:var(--green);font-size:1.08rem;line-height:1.2}
+.match{display:inline-block;font-size:.78rem;font-weight:700;color:#8A5A00;background:#FFF3DB;border:1px solid #F2D49A;border-radius:6px;padding:.12rem .45rem;margin-top:.35rem}
+.terms{color:var(--mut);font-size:.85rem;margin-top:.3rem;line-height:1.45;max-width:34ch}
+td.ca{text-align:right;white-space:nowrap}
+.claim{display:inline-block;background:var(--brand);color:#fff;font-weight:700;font-size:.95rem;padding:.6rem 1.05rem;border-radius:9px;box-shadow:0 8px 18px -10px rgba(29,78,216,.6)}
+.claim:hover{background:var(--brand-d);text-decoration:none}
+.note{background:var(--card);border:1px solid var(--bd);border-radius:var(--r);padding:1rem 1.1rem;color:var(--mut);margin:.7rem 0}
+.subhead{font-weight:800;color:var(--ink);font-size:1.05rem;margin:2rem 0 .5rem;letter-spacing:-.01em}
+.statelist{display:flex;flex-wrap:wrap;gap:.35rem;margin:.5rem 0 0}
+.statelist a{font-size:.78rem;font-weight:600;color:var(--mut);background:var(--card);border:1px solid var(--bd);border-radius:7px;padding:.22rem .5rem}
+.statelist a:hover{border-color:var(--brand);color:var(--brand);text-decoration:none}
+.statelist a.on{color:#fff;background:var(--brand);border-color:var(--brand)}
+.cta-strip{background:var(--brandwash);border:1px solid #C7D7FB;border-radius:var(--r);padding:1.2rem 1.3rem;margin:1.8rem 0;color:var(--txt)}
+.cta-strip a.go{display:inline-block;margin-top:.6rem;background:var(--brand);color:#fff;font-weight:700;padding:.6rem 1.1rem;border-radius:9px}
+.cta-strip a.go:hover{background:var(--brand-d);text-decoration:none}
+.cta-strip a.go.alt{background:#fff;color:var(--brand);border:1px solid var(--brand);margin-right:.5rem}
+/* ---- article prose ---- */
+.prose{max-width:700px;line-height:1.75;font-size:1.08rem;color:var(--txt)}
+.prose h2{font-weight:800;letter-spacing:-.02em;font-size:1.5rem;margin:2rem 0 .6rem;color:var(--ink)}
+.prose h3{font-weight:700;font-size:1.2rem;margin:1.5rem 0 .5rem;color:var(--ink)}
+.prose a{font-weight:600}
+.prose ul,.prose ol{padding-left:1.25rem}.prose li{margin:.35rem 0}
+.prose blockquote{border-left:3px solid var(--brand);background:var(--card);margin:1rem 0;padding:.6rem 1rem;color:var(--mut);border-radius:0 8px 8px 0}
+.prose img{max-width:100%;border-radius:10px}
+.alist{list-style:none;padding:0;margin:1.2rem 0}
+.alist li{background:var(--card);border:1px solid var(--bd);border-radius:var(--r);padding:1.1rem 1.2rem;margin:.7rem 0;transition:border-color .12s}
+.alist li:hover{border-color:var(--bd2)}
+.alist a.t{font-weight:800;letter-spacing:-.02em;font-size:1.28rem;color:var(--ink);line-height:1.15;display:block}
+.alist a.t:hover{color:var(--brand);text-decoration:none}
+.alist .dek{color:var(--mut);margin:.35rem 0 0;line-height:1.55}
+.alist time{font-size:.76rem;color:var(--mut);font-weight:600}
+.foot{background:var(--card);border-top:1px solid var(--bd);color:var(--mut);font-size:.8rem;line-height:1.7}
+.foot .in{max-width:960px;margin:0 auto;padding:1.6rem 1.1rem 2.4rem}
+.foot a{color:var(--mut);font-weight:600}.foot a:hover{color:var(--brand)}
+.foot .ln{margin-bottom:.6rem}
+@media(max-width:640px){
+  .cmp,.cmp tbody,.cmp tr,.cmp td{display:block;width:100%}
+  .cmp thead{position:absolute;left:-9999px}
+  .cmp tr{border-bottom:1px solid var(--bd);padding:.5rem 0}
+  .cmp tr.top td{background:transparent}.cmp tr.top{background:var(--brandwash)}
+  .cmp td{border:0;padding:.4rem 1.1rem}
+  td.ca{text-align:left;padding-top:.2rem}.claim{display:block;text-align:center}
+}
+</style></head><body>
+<div class="bar"></div>
+<header class="topnav"><div class="in">
+  <a class="brand" href="/bonuses"><span class="mk"><svg viewBox="0 0 64 64" aria-hidden="true"><polyline points="11,44 27,28 38,36 53,17" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>${escAttr(BRAND)}</a>
+  <nav>${nav}</nav>
+</div></header>
+<main class="wrap">${o.body}</main>
+<footer class="foot"><div class="in">
+  <div class="ln"><a href="/bonuses">Bonuses by state</a> · <a href="/blog">Guides</a></div>
+  <p><strong style="color:#475467">Advertising disclosure:</strong> ${escAttr(BRAND)} is an independent guide to sports-betting &amp; daily-fantasy sign-up offers. Some outbound links are partner/affiliate links — we may earn a commission if you sign up, at no extra cost to you. This never affects which offers we list or how we rank them. Offers vary by state and change often; always confirm current terms on the operator's site before signing up.</p>
+  <p>21+ (18+ where permitted). If gambling stops being fun, call <strong>1-800-GAMBLER</strong> or visit <a href="https://www.ncpgambling.org/">ncpgambling.org</a>. ${escAttr(BRAND)} is a project by <a href="/">AnpiesPicks</a>.</p>
+</div></footer>
+</body></html>`;
+}
+
+// ---- /bonuses + /bonuses/:state — the state-by-state comparison magnet ----
+async function renderBonusesPage(c: any, stateRaw: string): Promise<Response> {
+  const state = String(stateRaw || getGeo(c).state || 'OH').toUpperCase();
+  const stName = STATE_NAMES[state] || state;
+  const origin = new URL(c.req.url).origin;
+  const rows = (await c.env.DB.prepare(
+    `SELECT b.id, b.name, b.category, b.blurb, b.min_age, b.favorite,
+            o.referee_bonus, o.required_action, o.referee_value,
+            lg.status, lg.accepting_signups, lg.promo_active, lg.product_note
+       FROM books b
+       LEFT JOIN offers o    ON o.book_id = b.id AND o.active = 1
+       LEFT JOIN legality lg ON lg.book_id = b.id AND lg.state = ?
+      WHERE b.active = 1 AND b.referral_url IS NOT NULL AND b.referral_url <> ''
+      ORDER BY (lg.status='legal' AND lg.accepting_signups=1) DESC, lg.promo_active DESC,
+               COALESCE(o.referee_value,0) DESC, b.favorite DESC, b.name`
+  ).bind(state).all()).results as any[];
+  // attach active deposit-match promos (same shape the landing page uses)
+  const proms = (await c.env.DB.prepare(`SELECT book_id, match_pct, max_amount, duration FROM promos WHERE active=1 ORDER BY id DESC`).all()).results as any[];
+  const matchByBook: Record<string, any> = {};
+  for (const p of proms) if (!matchByBook[p.book_id]) matchByBook[p.book_id] = p;
+
+  const avail = rows.filter((r) => r.status === 'legal' && r.accepting_signups);
+  const others = rows.filter((r) => !(r.status === 'legal' && r.accepting_signups));
+  const topId = (avail.find((r) => r.favorite) || avail[0])?.id;
+
+  const row = (r: any, i: number) => {
+    const m = matchByBook[r.id];
+    const matchHtml = m ? `<div class="match">+ ${m.match_pct ? m.match_pct + '% deposit match' : 'Deposit match'}${m.max_amount ? ' to $' + m.max_amount : ''}</div>` : '';
+    const terms = r.required_action || r.product_note || r.blurb;
+    return `<tr class="${r.id === topId ? 'top' : ''}">
+      <td data-label="App"><div class="app"><span class="rk">${i + 1}</span><span class="an">${r.id === topId ? '<span class="pin">★ Top pick</span><br>' : ''}${escHtml(r.name)}<small>${escHtml(CAT_LABEL[r.category] || r.category || '')}${r.min_age ? ' · ' + r.min_age + '+' : ''}</small></span></div></td>
+      <td data-label="Sign-up offer"><div class="bn">${escHtml(r.referee_bonus || 'Sign-up bonus')}</div>${matchHtml}${terms ? `<div class="terms">${escHtml(terms)}</div>` : ''}</td>
+      <td class="ca"><a class="claim" href="/smart?book=${encodeURIComponent(r.id)}&channel=bonuses&state=${state}" rel="nofollow sponsored">Claim bonus →</a></td>
+    </tr>`;
+  };
+  const table = `<table class="cmp"><thead><tr><th>App</th><th>Sign-up offer</th><th></th></tr></thead><tbody>${avail.map(row).join('')}</tbody></table>`;
+
+  const stateList = ALL_STATES.map((s) => `<a href="/bonuses/${s.toLowerCase()}"${s === state ? ' class="on"' : ''} title="${escHtml(STATE_NAMES[s])}">${s}</a>`).join('');
+  const title = `Best Sportsbook & Pick'em Sign-Up Bonuses in ${stName} (${monthYear()})`;
+  const desc = `Compare the current sports-betting and DFS pick'em sign-up bonuses available in ${stName}. Hand-checked offers, what you get, and how to claim — updated for ${monthYear()}.`;
+  const jsonLd = JSON.stringify({
+    '@context': 'https://schema.org', '@type': 'ItemList', name: title,
+    itemListElement: avail.map((r, i) => ({ '@type': 'ListItem', position: i + 1, name: r.name })),
+  });
+
+  const body = `
+    <p class="eyebrow">Bonus finder · Updated ${monthYear()}</p>
+    <h1>Best ${escHtml(stName)} sportsbook &amp; pick'em bonuses</h1>
+    <p class="lede">We track the sports-betting and daily-fantasy pick'em apps signing up new players in <strong>${escHtml(stName)}</strong> and the welcome offer each one is running. Offers are checked by hand and refreshed regularly — apps not currently accepting ${escHtml(stName)} players are listed separately below.</p>
+    <div class="statepick"><label for="st">Showing offers for:</label>
+      <select id="st" onchange="location.href='/bonuses/'+this.value.toLowerCase()">${ALL_STATES.map((s) => `<option value="${s}"${s === state ? ' selected' : ''}>${STATE_NAMES[s]}</option>`).join('')}</select>
+    </div>
+    ${avail.length ? table : `<div class="note">No apps are signing up new players in ${escHtml(stName)} with a live welcome offer right now. Choose another state below, or <a href="/blog">read the latest guides</a> — new states open up often.</div>`}
+    ${others.length ? `<p class="subhead">Not available in ${escHtml(stName)} yet</p>${others.map((r) => `<div class="note" style="margin:.5rem 0;padding:.7rem 1rem"><strong style="color:#0F1B2E">${escHtml(r.name)}</strong> — ${escHtml(CAT_LABEL[r.category] || r.category || '')}. ${r.status === 'legal' ? 'Not currently taking new signups here.' : 'Not available in ' + escHtml(stName) + ' yet.'}</div>`).join('')}` : ''}
+    ${avail.length ? `<div class="cta-strip"><strong>Not sure which to choose?</strong> We'll send you straight to the best available welcome offer for ${escHtml(stName)}.<br>
+      <a class="go" href="/smart?channel=bonuses&state=${state}" rel="nofollow sponsored">See the best ${escHtml(stName)} offer →</a></div>` : ''}
+    <p class="subhead">Browse another state</p>
+    <div class="statelist">${stateList}</div>
+  `;
+  return new Response(siteShell({ title, desc, canonical: `${origin}/bonuses/${state.toLowerCase()}`, body, active: '/bonuses', jsonLd }),
+    { headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'public, max-age=300' } });
+}
+app.get('/bonuses', (c) => renderBonusesPage(c, ''));
+app.get('/bonuses/:state', (c) => {
+  const s = String(c.req.param('state') || '').toUpperCase();
+  if (!STATE_NAMES[s]) return c.redirect('/bonuses', 302);
+  return renderBonusesPage(c, s);
+});
+
+// ---- /blog + /blog/:slug — the content layer ----
+app.get('/blog', async (c) => {
+  const origin = new URL(c.req.url).origin;
+  const rows = (await c.env.DB.prepare(
+    `SELECT slug, title, dek, published_at FROM articles WHERE status='published' ORDER BY COALESCE(published_at, created_at) DESC, id DESC LIMIT 100`
+  ).all()).results as any[];
+  const list = rows.length ? `<ul class="alist">${rows.map((a) => `<li>
+      <a class="t" href="/blog/${escAttr(a.slug)}">${escHtml(a.title)}</a>
+      ${a.published_at ? `<time>${escHtml(String(a.published_at).slice(0, 10))}</time>` : ''}
+      ${a.dek ? `<p class="dek">${escHtml(a.dek)}</p>` : ''}
+    </li>`).join('')}</ul>`
+    : `<div class="note">No guides published yet — the first ones are on the way. In the meantime, <a href="/bonuses">compare sign-up bonuses in your state</a>.</div>`;
+  const title = `${BRAND} Guides — sports-betting & DFS bonuses explained`;
+  const desc = 'Plain-English guides to sports-betting & daily-fantasy sign-up bonuses: how playthrough really works, which offers are worth it, and state-by-state launch news.';
+  const body = `<p class="eyebrow">Guides</p><h1>Bonuses &amp; how-tos, explained</h1>
+    <p class="lede">No hype — just clear breakdowns of which sign-up offers are actually worth it, how the fine print works, and which apps are live where. ${desc}</p>${list}`;
+  return new Response(siteShell({ title, desc, canonical: `${origin}/blog`, body, active: '/blog' }),
+    { headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'public, max-age=300' } });
+});
+app.get('/blog/:slug', async (c) => {
+  const origin = new URL(c.req.url).origin;
+  const a = await c.env.DB.prepare(`SELECT * FROM articles WHERE slug=? AND status='published'`).bind(c.req.param('slug')).first<any>();
+  if (!a) return c.notFound();
+  const dateStr = a.published_at ? String(a.published_at).slice(0, 10) : '';
+  const cover = a.cover_url ? (a.cover_url.startsWith('http') ? a.cover_url : origin + a.cover_url) : null;
+  const jsonLd = JSON.stringify({
+    '@context': 'https://schema.org', '@type': 'BlogPosting', headline: a.title,
+    description: a.dek || '', datePublished: a.published_at || a.created_at, dateModified: a.updated_at || a.created_at,
+    author: { '@type': 'Organization', name: BRAND }, publisher: { '@type': 'Organization', name: BRAND },
+    mainEntityOfPage: `${origin}/blog/${a.slug}`, ...(cover ? { image: cover } : {}),
+  });
+  const body = `<p class="eyebrow"><a href="/blog">← Guides</a></p>
+    <h1>${escHtml(a.title)}</h1>
+    ${a.dek ? `<p class="lede">${escHtml(a.dek)}</p>` : ''}
+    ${dateStr ? `<p style="font-size:.8rem;color:var(--mut);font-weight:600;margin:-.6rem 0 1.2rem">Updated ${escHtml(dateStr)}</p>` : ''}
+    ${cover ? `<img src="${escAttr(a.cover_url)}" alt="${escAttr(a.title)}" style="width:100%;border-radius:14px;margin:0 0 1.4rem">` : ''}
+    <div class="prose">${mdToHtml(a.body || '')}</div>
+    <div class="cta-strip"><strong>Compare current sign-up offers</strong> in your state, or jump straight to the best available one.<br>
+      <a class="go alt" href="/bonuses">Compare bonuses →</a><a class="go" href="/smart?channel=blog" rel="nofollow sponsored">See the best offer →</a></div>`;
+  return new Response(siteShell({ title: `${a.title} — ${BRAND}`, desc: a.dek || a.title, canonical: `${origin}/blog/${a.slug}`, body, active: '/blog', jsonLd, ogImage: cover || undefined }),
+    { headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'public, max-age=300' } });
+});
+
+// ---- robots.txt + sitemap.xml (so search engines find & index the above) ----
+app.get('/robots.txt', (c) => {
+  const origin = new URL(c.req.url).origin;
+  return c.text(`User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /quick\nDisallow: /login\nDisallow: /api/\n\nSitemap: ${origin}/sitemap.xml\n`);
+});
+app.get('/sitemap.xml', async (c) => {
+  const origin = new URL(c.req.url).origin;
+  const arts = (await c.env.DB.prepare(`SELECT slug, COALESCE(updated_at, published_at, created_at) AS lm FROM articles WHERE status='published'`).all()).results as any[];
+  const urls: string[] = [];
+  const add = (loc: string, lm?: string) => urls.push(`<url><loc>${escAttr(loc)}</loc>${lm ? `<lastmod>${escAttr(String(lm).slice(0, 10))}</lastmod>` : ''}</url>`);
+  add(`${origin}/`);
+  add(`${origin}/bonuses`);
+  add(`${origin}/record`);
+  add(`${origin}/me`);
+  add(`${origin}/blog`);
+  for (const s of ALL_STATES) add(`${origin}/bonuses/${s.toLowerCase()}`);
+  for (const a of arts) add(`${origin}/blog/${a.slug}`, a.lm);
+  return c.body(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemap.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>`,
+    200, { 'content-type': 'application/xml; charset=utf-8', 'cache-control': 'public, max-age=3600' });
+});
+
+// ---- admin articles CRUD (cookie-gated) ----
+app.get('/api/admin/articles', async (c) => {
+  const rows = (await c.env.DB.prepare(`SELECT id, slug, title, dek, tags, status, published_at, updated_at FROM articles ORDER BY (status='published'), COALESCE(published_at, created_at) DESC, id DESC`).all()).results;
+  return c.json({ articles: rows });
+});
+app.get('/api/admin/articles/:id', async (c) => {
+  const a = await c.env.DB.prepare(`SELECT * FROM articles WHERE id=?`).bind(c.req.param('id')).first();
+  if (!a) return c.json({ error: 'not found' }, 404);
+  return c.json({ article: a });
+});
+async function uniqueSlug(c: any, base: string, exceptId?: any): Promise<string> {
+  let slug = slugify(base) || 'post';
+  let n = 0;
+  while (true) {
+    const row = await c.env.DB.prepare(`SELECT id FROM articles WHERE slug=?`).bind(slug).first<any>();
+    if (!row || (exceptId != null && String(row.id) === String(exceptId))) return slug;
+    n++; slug = slugify(base) + '-' + n;
+  }
+}
+app.post('/api/admin/articles', async (c) => {
+  const a = await c.req.json().catch(() => ({} as any));
+  if (!a.title) return c.json({ error: 'title required' }, 400);
+  const slug = await uniqueSlug(c, a.slug || a.title);
+  const status = a.status === 'published' ? 'published' : 'draft';
+  const res = await c.env.DB.prepare(
+    `INSERT INTO articles (slug, title, dek, body, tags, cover_url, status, published_at)
+     VALUES (?,?,?,?,?,?,?, ${status === 'published' ? "datetime('now')" : 'NULL'})`
+  ).bind(slug, a.title, a.dek ?? null, a.body ?? null, a.tags ?? null, a.cover_url ?? null, status).run();
+  return c.json({ ok: true, id: res.meta.last_row_id, slug });
+});
+app.put('/api/admin/articles/:id', async (c) => {
+  const id = c.req.param('id');
+  const a = await c.req.json().catch(() => ({} as any));
+  const cur = await c.env.DB.prepare(`SELECT * FROM articles WHERE id=?`).bind(id).first<any>();
+  if (!cur) return c.json({ error: 'not found' }, 404);
+  const slug = a.slug && a.slug !== cur.slug ? await uniqueSlug(c, a.slug, id) : cur.slug;
+  const status = a.status === undefined ? cur.status : (a.status === 'published' ? 'published' : 'draft');
+  // first publish stamps published_at; unpublishing leaves it (so re-publish keeps original date unless you clear it)
+  const publishedAt = status === 'published' ? (cur.published_at || new Date().toISOString()) : cur.published_at;
+  await c.env.DB.prepare(
+    `UPDATE articles SET slug=?, title=COALESCE(?,title), dek=?, body=?, tags=?, cover_url=?, status=?, published_at=?, updated_at=datetime('now') WHERE id=?`
+  ).bind(slug, a.title ?? null, a.dek ?? null, a.body ?? null, a.tags ?? null, a.cover_url ?? null, status, publishedAt, id).run();
+  return c.json({ ok: true, slug });
+});
+app.delete('/api/admin/articles/:id', async (c) => {
+  await c.env.DB.prepare(`DELETE FROM articles WHERE id=?`).bind(c.req.param('id')).run();
+  return c.json({ ok: true });
+});
+
+// ---------------------------------------------------------------------------
 // static assets (landing = index.html, dashboard = admin.html)
 // ---------------------------------------------------------------------------
 // Serve the SPA HTML pages with no-store so deploys always land (no stale cache on
